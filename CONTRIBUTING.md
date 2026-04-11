@@ -1,9 +1,9 @@
-# Contributing to the Mercury framework
+# Contributing to Composable Backend
 
 Thanks for taking the time to contribute!
 
-The following is a set of guidelines for contributing to Mercury and its packages, which are hosted
-in the [Accenture Organization](https://github.com/accenture) on GitHub. These are mostly
+The following is a set of guidelines for contributing to this project, which is hosted
+on [GitHub](https://github.com/ernestojballon/composable-backend). These are mostly
 guidelines, not rules. Use your best judgment, and feel free to propose changes to this document
 in a pull request.
 
@@ -11,7 +11,6 @@ in a pull request.
 
 This project and everyone participating in it is governed by our
 [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
-Please report unacceptable behavior to Kevin Bader, who is the current project maintainer.
 
 ## What should I know before I get started?
 

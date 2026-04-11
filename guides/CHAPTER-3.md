@@ -21,7 +21,7 @@ The rest.yaml configuration has three sections:
 REST automation is optional. To turn on REST automation, add the REST automation start up script in your main app:
 
 ```javascript
-import { Logger, Platform, RestAutomation } from 'mercury-composable';
+import { Logger, Platform, RestAutomation } from 'composable-backend';
 import { ComposableLoader } from '../preload/preload.js'; 
 ...
 async function main() {

@@ -5,7 +5,7 @@
 Each application has an entry point. You may implement the main entry point like this:
 
 ```javascript
-import { Logger, Platform, RestAutomation } from 'mercury-composable';
+import { Logger, Platform, RestAutomation } from 'composable-backend';
 import { ComposableLoader } from './preload/preload.js'; 
 
 const log = Logger.getInstance();
@@ -81,7 +81,7 @@ As a best practice, we recommend using error codes that are compatible with HTTP
 You can write a function like this:
 
 ```javascript
-import { preload, Composable, EventEnvelope, AsyncHttpRequest, Logger } from 'mercury-composable';
+import { preload, Composable, EventEnvelope, AsyncHttpRequest, Logger } from 'composable-backend';
 
 const log = Logger.getInstance();
 
@@ -513,7 +513,7 @@ const result = await scanner.scan();
 // sample result set below
 {
   "classes": {
-    "NoOp": "../node_modules/mercury-composable/dist/services/no-op.js"
+    "NoOp": "../node_modules/composable-backend/dist/services/no-op.js"
   },
   "parameters": {
     "NoOp": [
@@ -570,7 +570,7 @@ You can use the `composable-example` project as a template to start writing your
 This project is licensed under the Apache 2.0 open sources license. We will update the public codebase after
 it passes regression tests and meets stability and performance benchmarks in our production systems.
 
-Mercury Composable is developed as an engine for you to build the latest cloud native applications.
+Composable Backend is developed as an engine for you to build the latest cloud native applications.
 
 Composable technology is evolving rapidly. We would exercise best effort to keep the essential internals
 and core APIs stable. Please browse the latest Developer Guide, release notes and Javadoc for any breaking
@@ -578,7 +578,7 @@ API changes.
 
 ## Technical support
 
-For enterprise clients, technical support is available. Please contact your Accenture representative for details.
+For support, please open an issue on [GitHub](https://github.com/ernestojballon/composable-backend/issues).
 <br/>
 
 |            Chapter-6            |                   Home                    |              Chapter-8              |

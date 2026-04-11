@@ -158,7 +158,7 @@ To support writing composable functions for unit test purpose, the class scanner
 This can be done by commenting out the "preload annotation" like this:
 
 ```javascript
-import { Composable, EventEnvelope } from "mercury-composable";
+import { Composable, EventEnvelope } from "composable-backend";
 
 export class SimpleTestTask implements Composable {
     static readonly routeName = 'simple.test.task'
@@ -320,10 +320,10 @@ from distributed trace to your custom function.
 ## Importing core library from corporate artifactory
 
 While you may use github as a repository to test drive your applications, you should build and publish the
-mercury-composable library to your enterprise "npm" artifactory. Please consult your DevSecOps colleagues for
+composable-backend library to your enterprise "npm" artifactory. Please consult your DevSecOps colleagues for
 pipeline setup procedure. It would vary from one organization to another.
 
-If you publish the mercury-composable to your own artifactory as another package name, you can point it to your
+If you publish the composable-backend to your own artifactory as another package name, you can point it to your
 corporate artifactory in the package.json of your application like this:
 
 ```shell
@@ -338,16 +338,16 @@ corporate artifactory in the package.json of your application like this:
     "test:watch": "vitest"
   },
   "dependencies": {
-    "mercury-composable": "npm:actual-published-package-name"
+    "composable-backend": "npm:actual-published-package-name"
   }
 ```
 
-In the above example, it assumes the actual package name that is published from mercury-composable core library
-is "actual-published-package-name", the package name "mercury-composable" becomes an alias so that you can keep
-the import statements that point to "mercury-composable" unchanged.
+In the above example, it assumes the actual package name that is published from composable-backend core library
+is "actual-published-package-name", the package name "composable-backend" becomes an alias so that you can keep
+the import statements that point to "composable-backend" unchanged.
 
 Once you have updated the package.json file in the "examples" folder, you may run "npm run build". This verifies
-that the example application can import from the newly published mercury-composable core library in your own
+that the example application can import from the newly published composable-backend core library in your own
 artifactory.
 
 > *Note*: To publish the library to your enterprise npm artifactory, you may need to remove the package-lock.json

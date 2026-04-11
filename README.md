@@ -31,8 +31,8 @@ A composable application is designed in 3 steps:
 2. Create a configuration file to represent the event flow
 3. Write a user story for each user function
 
-To get started, please visit [Chapter 1, Developer Guide](https://accenture.github.io/mercury-nodejs/guides/CHAPTER-1/)
-and [Methodology](https://accenture.github.io/mercury-nodejs/guides/METHODOLOGY/).
+To get started, please visit [Chapter 1, Developer Guide](guides/CHAPTER-1.md)
+and [Methodology](guides/METHODOLOGY.md).
 
 # Conquer Complexity: Embrace Composable Design
 

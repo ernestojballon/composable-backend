@@ -101,7 +101,7 @@ input arguments (headers and body) in your function. Now you can write your new 
 under the "tasks" folder in the source project.
 
 ```shell
-import { AppException, Composable, EventEnvelope, preload } from "mercury-composable";
+import { AppException, Composable, EventEnvelope, preload } from "composable-backend";
 
 export class Greetings implements Composable {
     @preload('greeting.demo', 10)
@@ -1511,10 +1511,10 @@ software assets for production use so that you can gradually and orderly refacto
 functions.
 
 Please review the composable-worker.ts source file to examine how it encapsulates a worker thread:
-[Composable example repository](https://github.com/Accenture/mercury-composable-examples)
+[Composable example repository](https://github.com/ernestojballon/composable-backend-examples)
 
 The composable-worker.ts class may be used as a template:
-[ComposableWorker](https://github.com/Accenture/mercury-composable-examples/blob/main/node/composable-example/src/workers/composable-worker.ts)
+[ComposableWorker](https://github.com/ernestojballon/composable-backend-examples/blob/main/node/composable-example/src/workers/composable-worker.ts)
 
 An extract of the source code is shown below.
 

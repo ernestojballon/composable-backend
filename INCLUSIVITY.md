@@ -1,13 +1,10 @@
-<img align="right" height="40" src="https://www.accenture.com/t20180820T081710Z__w__/us-en/_acnmedia/Accenture/Dev/Redesign/Acc_Logo_Black_Purple_RGB.png">  
-<br /><br />
+# Technology Inclusive Language Guidebook
 
-# <font size="12">**TECHNOLOGY INCLUSIVE <br />LANGUAGE GUIDEBOOK**</font>
-
-As an organization, Accenture believes in building an inclusive workplace and contributing to a world where equality thrives. Certain terms or expressions can unintentionally harm, perpetuate damaging stereotypes, and insult people. Inclusive language avoids bias, slang terms, and word choices which express derision of groups of people based on race, gender, sexuality, or socioeconomic status.  The Accenture North America Technology team created this guidebook to provide Accenture employees with a view into inclusive language and guidance for working to avoid its use—helping to ensure that we communicate with respect, dignity and fairness.
+We believe in building an inclusive community and contributing to a world where equality thrives. Certain terms or expressions can unintentionally harm, perpetuate damaging stereotypes, and insult people. Inclusive language avoids bias, slang terms, and word choices which express derision of groups of people based on race, gender, sexuality, or socioeconomic status. This guidebook provides guidance for working to avoid non-inclusive language — helping to ensure that we communicate with respect, dignity and fairness.
 
 **How to use this guide?**
 
-Accenture has over 514,000 employees from diverse backgrounds, who perform consulting and delivery work for an equally diverse set of clients and partners. When communicating with your colleagues and representing Accenture, consider the connotation, however unintended, of certain terms in your written and verbal communication. The guidelines are intended to help you recognize non-inclusive words and understand potential meanings that these words might convey. Our goal with these recommendations is not to require you to use specific words, but to ask you to take a moment to consider how your audience may be affected by the language you choose.
+When communicating with your colleagues and contributors, consider the connotation, however unintended, of certain terms in your written and verbal communication. The guidelines are intended to help you recognize non-inclusive words and understand potential meanings that these words might convey. Our goal with these recommendations is not to require you to use specific words, but to ask you to take a moment to consider how your audience may be affected by the language you choose.
 
 <table>
     <thead>
@@ -32,7 +29,7 @@ Accenture has over 514,000 employees from diverse backgrounds, who perform consu
         <tr>
             <td>blacklist</td>
             <td>deny list <br />block list</td>
-            <td rowspan=2>The term “blacklist” was first used in the early 1600s to describe a list of those who were under suspicion and thus not to be trusted, whereas “whitelist” referred to those considered acceptable.  Accenture does not want to promote the association of “black” and negative, nor the connotation of “white” being the inverse, or positive.</td>
+            <td rowspan=2>The term “blacklist” was first used in the early 1600s to describe a list of those who were under suspicion and thus not to be trusted, whereas “whitelist” referred to those considered acceptable.  We do not want to promote the association of “black” and negative, nor the connotation of “white” being the inverse, or positive.</td>
         </tr>
         <tr>
             <td>whitelist</td>
@@ -83,4 +80,4 @@ Accenture has over 514,000 employees from diverse backgrounds, who perform consu
 </table>
 
 
-This guidebook is a living document and will be updated as terminology evolves. We encourage our users to provide feedback on the effectiveness of this document and we welcome additional suggestions. Contact us at [Technology\_ProjectElevate@accenture.com](mailto:Technology_ProjectElevate@accenture.com).
+This guidebook is a living document and will be updated as terminology evolves. We encourage our users to provide feedback on the effectiveness of this document and we welcome additional suggestions.

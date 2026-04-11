@@ -1,6 +1,6 @@
 # Introduction
 
-Mercury Composable is a software development toolkit for writing composable applications.
+Composable Backend is a software development toolkit for writing composable applications.
 
 Composable application means that an application is assembled from modular software components or functions that
 are self-contained and pluggable. You can mix-n-match functions to form new applications. You can retire outdated
@@ -126,7 +126,7 @@ framework. You can define input/output as key-values (i.e. JSON objects).
 Assuming you clone the repository into the "sandbox" directory, you may build the libraries like this.
 
 ```shell
-cd sandbox/mercury-nodejs
+cd sandbox/composable-backend
 npm install
 npm run build
 ```
@@ -137,12 +137,12 @@ the distribution into your enterprise artifactory.
 ## Composable application example
 
 Let's take a test drive of a composable application example in this repo:
-[composable-example](https://github.com/Accenture/mercury-composable-examples)
+[composable-example](https://github.com/ernestojballon/composable-backend-examples)
 
 To build the sample app, please clone example repo and build the application like this:
 
 ```shell
-cd sandbox/mercury-composable-examples
+cd sandbox/composable-backend-examples
 cd node/composable-example
 npm install
 npm run build
@@ -169,7 +169,7 @@ For details, please refer to the Configuration management section in [Appendix-I
 Your build log may look like this:
 
 ```text
-INFO Scanning ./node_modules/mercury-composable/dist (scanPackage:preloader.js:20)
+INFO Scanning ./node_modules/composable-backend/dist (scanPackage:preloader.js:20)
 INFO Class NoOp (scanLibrary:preloader.js:78)
 INFO Scanning ./src (main:preloader.js:200)
 INFO Class DemoAuth (scanSource:preloader.js:102)
@@ -187,7 +187,7 @@ INFO Composable class loader (/preload/preload.ts) generated (generatePreLoader:
 
 The build script will compile your TypeScript source files into Javascript and then run the "preloader.js" script
 to scan for your composable functions. Optionally, you can ask it to scan for composable libraries using the
-"web.component.scan" parameter. In the above example, it scan for the package "mercury-composable" in the
+"web.component.scan" parameter. In the above example, it scan for the package "composable-backend" in the
 "node_modules" folder and find the NoOp function.
 
 The first step in designing a composable application is to draw an event flow diagram. This is similar to
@@ -227,7 +227,7 @@ Extract of some configuration parameters in "application.yml" is shown below:
 
 ```yaml
 application.name: 'composable-example'
-web.component.scan: 'mercury-composable'
+web.component.scan: 'composable-backend'
 server.port: 8086
 rest.automation: true
 yaml.rest.automation: classpath:/rest.yaml

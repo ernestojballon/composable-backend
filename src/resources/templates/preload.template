@@ -3,7 +3,7 @@
  */
 import fs from 'fs';
 import { fileURLToPath } from "url";
-import { Logger, Utility, AppConfig, Platform, RestAutomation, EventScriptEngine } from 'mercury-composable';
+import { Logger, Utility, AppConfig, Platform, RestAutomation, EventScriptEngine } from 'composable-backend';
 ${import-statements}
 //
 const log = Logger.getInstance();

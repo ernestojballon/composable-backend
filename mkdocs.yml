@@ -1,5 +1,5 @@
 site_name: Composable for Node.js
-site_url: https://github.com/accenture/mercury-nodejs
+site_url: https://github.com/ernestojballon/composable-backend
 nav:
     - Home: README.md
     - Methodology: guides/METHODOLOGY.md

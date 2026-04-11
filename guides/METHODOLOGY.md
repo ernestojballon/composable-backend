@@ -14,10 +14,10 @@ You can retire outdated functions without adverse side effect to a production sy
 can exist, and you can decide how to route user requests to different versions of a function. Applications would be
 easier to design, develop, maintain, deploy, and scale.
 
-In 2023, Accenture extended its event-driven development framework, codename "Mercury", to become the first
+The original Mercury event-driven development framework was extended to become the first
 implementation of a Composable framework to realize the goal of composable architecture and application design.
 
-Before we take a deep dive of the mercury-composable framework, let's review Composable Methodology first.
+Before we take a deep dive of the composable-backend framework, let's review Composable Methodology first.
 
 ## Methodology
 

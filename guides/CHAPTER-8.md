@@ -23,7 +23,7 @@ to the HTTP Flow Adapter for onward delivery to the caller.
 ## Minimalist Kafka Flow Adapter
 
 A minimalist Kafka Flow Adapter application is available in
-[Composable-example](https://github.com/Accenture/mercury-composable-examples)
+[Composable-example](https://github.com/ernestojballon/composable-backend-examples)
 
 Please clone the above example repository and review the subproject "minimalist-kafka-adapter" for details.
 
@@ -97,7 +97,7 @@ respectively.
 *Consumer wrapper*:
 
 ```javascript
-import { Composable, EventEnvelope, preload } from 'mercury-composable';
+import { Composable, EventEnvelope, preload } from 'composable-backend';
 import { KafkaWorker } from '../workers/kafka-worker.js';
 
 export class KafkaAdapter implements Composable {
@@ -124,7 +124,7 @@ export class KafkaAdapter implements Composable {
 *Producer wrapper*:
 
 ```javascript
-import { Composable, EventEnvelope, AppException, preload, PostOffice } from 'mercury-composable';
+import { Composable, EventEnvelope, AppException, preload, PostOffice } from 'composable-backend';
 
 /**
  * This composable function sends outbound messages from the caller to any Kafka topics

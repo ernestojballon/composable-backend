@@ -84,7 +84,7 @@ Your custom health service must respond to the following requests:
 A sample health service is available in the `health-check.ts` class of the hello world project as follows:
 
 ```javascript
-import { preload, Composable, EventEnvelope, AppException } from 'mercury-composable';
+import { preload, Composable, EventEnvelope, AppException } from 'composable-backend';
 
 const TYPE = 'type';
 const INFO = 'info';

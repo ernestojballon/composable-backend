@@ -470,7 +470,7 @@ N/A
 
 ### Changed
 
-Updated Developer Guide's Chapter 5 to describe publishing mercury-composable core
+Updated Developer Guide's Chapter 5 to describe publishing composable-backend core
 library to enterprise npm artifactory
 
 ---
