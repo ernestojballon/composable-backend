@@ -275,7 +275,9 @@ class PO {
             const targetHttp = input.getHeader(X_EVENT_API)? null : resolver.getEventHttpTarget(route);
             const headers = resolver.getEventHttpHeaders(route);
             if (targetHttp) {
-                this.sendEventApi(input, targetHttp, headers);
+                void this.sendEventApi(input, targetHttp, headers).catch(e => {
+                    log.error(`Error in sending async event ${route} to ${targetHttp} - ${e.message}`);
+                });
                 return;
             }
             if (handlers.has(route)) {
@@ -399,6 +401,7 @@ class PO {
                 path = target.pathname;
             } catch (ex) {
                 reject(new AppException(400, ex.message));
+                return;
             }
             req.setTargetHost(host).setUrl(path);
             if (event.getTraceId()) {

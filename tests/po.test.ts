@@ -12,9 +12,11 @@ import { EventEnvelope } from '../src/models/event-envelope';
 import { AsyncHttpRequest } from '../src/models/async-http-request';
 import { AppException } from '../src/models/app-exception';
 import { ObjectStreamIO, ObjectStreamReader, ObjectStreamWriter } from '../src/system/object-stream';
+import { EventHttpResolver } from '../src/util/event-http-resolver';
 import { HelloWorld } from './services/helloworld';
 import { NextFunction, Request, Response } from 'express';
 import fs from 'fs';
+import * as http from 'http';
 import { fileURLToPath } from "url";
 
 const ASYNC_HTTP_CLIENT = 'async.http.request';
@@ -60,6 +62,46 @@ function getRootFolder() {
   const path = folder.includes('\\')? folder.replaceAll('\\', '/') : folder;
   const colon = path.indexOf(':');
   return colon == 1? path.substring(colon+1) : path;
+}
+
+async function performRawHttpGet(path: string): Promise<{status: number, body: string}> {
+  return new Promise((resolve, reject) => {
+    const target = new URL(baseUrl);
+    const req = http.request({
+      method: 'GET',
+      host: target.hostname,
+      port: target.port,
+      path,
+    }, res => {
+      const blocks = new Array<Buffer>();
+      res.on('data', chunk => {
+        blocks.push(chunk instanceof Buffer? chunk : Buffer.from(chunk));
+      });
+      res.on('end', () => {
+        resolve({
+          status: res.statusCode ?? 0,
+          body: Buffer.concat(blocks).toString('utf-8'),
+        });
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+async function expectNoUnhandledRejection(action: () => Promise<void>, settleMs = 250): Promise<void> {
+  let captured: unknown = null;
+  const handler = (reason: unknown) => {
+    captured = reason;
+  };
+  process.once('unhandledRejection', handler);
+  try {
+    await action();
+    await util.sleep(settleMs);
+  } finally {
+    process.removeListener('unhandledRejection', handler);
+  }
+  expect(captured).toBe(null);
 }
 
 class HelloDownload implements Composable {
@@ -930,6 +972,20 @@ describe('post office use cases', () => {
       expect(result.getBody()['message']).toBe('Resource not found');
     }); 
 
+    it('rejects malformed URI escape sequences during decode', () => {
+      expect(() => util.getDecodedUri('/%E0%A4%A')).toThrow('Malformed URI');
+    });
+
+    it('returns HTTP-400 for malformed URI paths', async () => {
+      const response = await performRawHttpGet('/%E0%A4%A');
+      expect(response.status).toBe(400);
+      expect(JSON.parse(response.body)).toEqual({
+        'type': 'error',
+        'status': 400,
+        'message': 'Malformed URI'
+      });
+    });
+
     it('can load home page', async () => {
       const po = new PostOffice();
       const req = new AsyncHttpRequest().setMethod('GET').setTargetHost(baseUrl).setUrl('/');
@@ -1058,6 +1114,23 @@ describe('post office use cases', () => {
       // confirm that the system has inserted a Trace ID
       expect(result.getHeader('x-trace-id')).toBeTruthy();
     }); 
+
+    it('preserves reserved characters in query parameters', async () => {
+      const request = new AsyncHttpRequest().setMethod('GET')
+                            .setTargetHost(baseUrl)
+                            .setUrl('/api/hello/world')
+                            .setHeader('accept', 'application/json')
+                            .setHeader('authorization', 'demo')
+                            .setQueryParameter('message', 'hello & world = yes')
+                            .setQueryParameter('plus', 'a+b');
+      const reqEvent = new EventEnvelope().setTo(ASYNC_HTTP_CLIENT).setBody(request.toMap());
+      const po = new PostOffice();
+      const result = await po.request(reqEvent, 3000);
+      expect(result.getBody()).toBeInstanceOf(Object);
+      const map = new MultiLevelMap(result.getBody() as object);
+      expect(map.getElement('parameters.query.message')).toBe('hello & world = yes');
+      expect(map.getElement('parameters.query.plus')).toBe('a+b');
+    });
     
     it('can do HTTP-GET result with octet-stream to /api/hello/world service', async () => {
       const request = new AsyncHttpRequest().setMethod('GET')
@@ -1153,6 +1226,45 @@ describe('post office use cases', () => {
       expect(map.getElement('headers.'+STREAM_CONTENT).startsWith('stream.')).toBe(true);
       expect(map.getElement('upload')).toBe('file');
     }); 
+
+    it('turns missing upload streams into a normal error response', async () => {
+      const request = new AsyncHttpRequest().setMethod('POST')
+                            .setTargetHost(baseUrl)
+                            .setUrl('/api/hello/upload')
+                            .setHeader('content-type', 'multipart/form-data')
+                            .setHeader('authorization', 'demo')
+                            .setFileName('missing.txt')
+                            .setTimeoutSeconds(5)
+                            .setStreamRoute('stream.missing-upload.in');
+      const reqEvent = new EventEnvelope().setTo(ASYNC_HTTP_CLIENT).setBody(request.toMap());
+      const po = new PostOffice();
+      let result: EventEnvelope = null;
+      await expectNoUnhandledRejection(async () => {
+        result = await po.request(reqEvent, 3000);
+      });
+      expect(result).toBeTruthy();
+      expect(result.getStatus()).toBe(404);
+      expect(String(result.getBody())).toContain('stream.missing-upload.in not found');
+    });
+
+    it('contains async event-over-http delivery failures', async () => {
+      const resolver = EventHttpResolver.getInstance() as unknown as {
+        eventHttpTargets: Map<string, string>;
+        eventHttpHeaders: Map<string, object>;
+      };
+      const route = 'no.such.remote.target';
+      resolver.eventHttpTargets.set(route, 'http://127.0.0.1:65535/api/event');
+      resolver.eventHttpHeaders.set(route, {});
+      try {
+        const po = new PostOffice(new Sender('unit.test', 'A10001', 'TEST /api/event/async-failure'));
+        await expectNoUnhandledRejection(async () => {
+          await po.send(new EventEnvelope().setTo(route).setBody('test'));
+        });
+      } finally {
+        resolver.eventHttpTargets.delete(route);
+        resolver.eventHttpHeaders.delete(route);
+      }
+    });
     
     it('can detect HTTP connection exception from AsyncHttpClient', async () => {
       const request = new AsyncHttpRequest().setMethod('GET')

@@ -479,7 +479,12 @@ class RestEngine {
             }
             // the last middleware is the rest-automation request handler            
             app.use(async (req: Request, res: Response) => {
-                this.setupRestHandler(req, res, router, restEnabled);              
+                try {
+                    await this.setupRestHandler(req, res, router, restEnabled);
+                } catch (e) {
+                    const rc = e instanceof AppException? e.getStatus() : 500;
+                    this.rejectRequest(res, rc, e.message);
+                }
             });                
             // for security reason, hide server identification
             app.disable('x-powered-by');
@@ -550,14 +555,20 @@ class RestEngine {
 
     private async setupRestHandler(req: Request, res: Response, router: RoutingEntry, restEnabled: boolean) {
         const method = req.method;
-        // Avoid "path traversal" attack by filtering "../" from URI
-        const uriPath = util.getDecodedUri(req.path);
+        let uriPath: string;
+        try {
+            // Avoid "path traversal" attack by filtering "../" from URI
+            uriPath = util.getDecodedUri(req.path);
+        } catch (e) {
+            this.rejectRequest(res, 400, e.message);
+            return;
+        }
         let found = false;
         if (restEnabled) {                
             const assigned = router.getRouteInfo(method, uriPath);
             if (assigned) {
                 if (assigned.info) {
-                    this.processRestRequest(uriPath, req, res, assigned, router);                          
+                    await this.processRestRequest(uriPath, req, res, assigned, router);
                 } else {
                     this.rejectRequest(res, 405, 'Method not allowed');
                 }

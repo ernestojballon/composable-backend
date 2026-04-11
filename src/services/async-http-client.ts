@@ -94,13 +94,18 @@ function handleInputStream(requestConfig: AxiosRequestConfig, streamId: string, 
                         b = Buffer.from(v);
                     } else {
                         log.error(`Stream dropped because data in ${streamId} is not Buffer or string`);
-                        this.push(null);
+                        this.destroy(new AppException(400, `Stream ${streamId} contains invalid data`));
+                        return;
                     }
                     uploadBlock(size, b, this);                                                              
                 } else {
                     this.push(null);
-                    upload.close();
+                    void upload.close().catch(() => undefined);
                 }
+            }).catch(e => {
+                const error = e instanceof AppException? e : new AppException(500, e.message);
+                log.warn(`Upload from ${streamId} failed - ${error.message}`);
+                this.destroy(error);
             });
         }
     });
@@ -344,7 +349,10 @@ export class AsyncHttpClient implements Composable {
         } catch (ex) {
             // this happens only when HTTP connection fails
             const error = new EventEnvelope().setTo(evt.getReplyTo()).setCorrelationId(evt.getCorrelationId());
-            error.setStatus(500).setBody(normalizeTextResponse(500, ex.message));
+            const cause = ex instanceof AppException? ex : ex.cause instanceof AppException? ex.cause : null;
+            const status = cause instanceof AppException? cause.getStatus() : 500;
+            const message = cause instanceof AppException? cause.message : ex.message;
+            error.setStatus(status).setBody(normalizeTextResponse(status, message));
             await po.send(error);
         }
         return null;    
@@ -383,16 +391,16 @@ function queryParametersToString(request: AsyncHttpRequest): string {
     for (const k in params) {
         const v = params[k];
         if (typeof(v) == 'string') {
-            sb.append(k);
+            sb.append(encodeURIComponent(k));
             sb.append('=');
-            sb.append(v);
+            sb.append(encodeURIComponent(v));
             sb.append('&');
         }
         if (Array.isArray(v)) {
             for (const item of v) {
-                sb.append(k);
+                sb.append(encodeURIComponent(k));
                 sb.append('=');
-                sb.append(item);
+                sb.append(encodeURIComponent(String(item)));
                 sb.append('&');
             }
         }

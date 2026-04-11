@@ -275,10 +275,14 @@ export class Utility {
         if (uriPath == null) {
             return "/";
         } else {
-            // Decode URI escape characters
-            const uri = uriPath.includes("%")? decodeURI(uriPath) : uriPath;
-            // Avoid "path traversal" attack
-            return uri.replace(/\\/g, '/').replace(/\.\.\//g, '');
+            try {
+                // Decode URI escape characters
+                const uri = uriPath.includes("%")? decodeURI(uriPath) : uriPath;
+                // Avoid "path traversal" attack
+                return uri.replace(/\\/g, '/').replace(/\.\.\//g, '');
+            } catch {
+                throw new Error('Malformed URI');
+            }
         }
     }
 
