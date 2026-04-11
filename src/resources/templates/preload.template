@@ -43,6 +43,7 @@ export class ComposableLoader {
                 // register the functions into the event system
                 const platform = Platform.getInstance();
                 ${service-list}
+                ${composable-list}
                 // start Event Script system
                 const eventManager = new EventScriptEngine();
                 await eventManager.start();

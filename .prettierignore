@@ -1,0 +1,6 @@
+dist/
+build/
+target/
+coverage/
+test-results/
+node_modules/

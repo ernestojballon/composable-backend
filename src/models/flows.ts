@@ -6,38 +6,38 @@ import { FlowInstance } from './flow_instance.js';
  * DO NOT use this directly in your application code.
  */
 export class Flows {
-    static readonly allFlows = {};
-    static readonly flowInstances = {};
+  static readonly allFlows = {};
+  static readonly flowInstances = {};
 
-    static getFlow(id: string): Flow {
-        const result = Flows.allFlows[id];
-        return result ?? null;
-    }
+  static getFlow(id: string): Flow {
+    const result = Flows.allFlows[id];
+    return result ?? null;
+  }
 
-    static getAllFlows(): string[] {
-        return Object.keys(Flows.allFlows);
-    }
+  static getAllFlows(): string[] {
+    return Object.keys(Flows.allFlows);
+  }
 
-    static getFlowInstance(id?: string): FlowInstance {
-        const result = id? Flows.flowInstances[id] : null;
-        return result ?? null;
-    }
+  static getFlowInstance(id?: string): FlowInstance {
+    const result = id ? Flows.flowInstances[id] : null;
+    return result ?? null;
+  }
 
-    static flowExists(id: string): boolean {
-        return id in Flows.allFlows;
-    }
+  static flowExists(id: string): boolean {
+    return id in Flows.allFlows;
+  }
 
-    static addFlow(flow: Flow): void {
-        Flows.allFlows[flow.id] = flow;
-    }
+  static addFlow(flow: Flow): void {
+    Flows.allFlows[flow.id] = flow;
+  }
 
-    static addFlowInstance(instance: FlowInstance): void {
-        Flows.flowInstances[instance.id] = instance;
-    }
+  static addFlowInstance(instance: FlowInstance): void {
+    Flows.flowInstances[instance.id] = instance;
+  }
 
-    static closeFlowInstance(id: string): void {
-        if (id in Flows.flowInstances) {
-            delete Flows.flowInstances[id];
-        }
+  static closeFlowInstance(id: string): void {
+    if (id in Flows.flowInstances) {
+      delete Flows.flowInstances[id];
     }
+  }
 }

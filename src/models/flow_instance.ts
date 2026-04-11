@@ -5,7 +5,7 @@ import { Logger } from '../util/logger.js';
 import { PostOffice } from '../system/post-office.js';
 import { EventEnvelope } from './event-envelope.js';
 
-const TIMEOUT = "timeout";
+const TIMEOUT = 'timeout';
 const util = new Utility();
 const po = new PostOffice();
 const log = Logger.getInstance();
@@ -15,119 +15,127 @@ const log = Logger.getInstance();
  * DO NOT use this directly in your application code.
  */
 export class FlowInstance {
-    dataset = {};
-    shared = {};
-    tasks = [];
-    pendingTasks = {};
-    pipeCounter = 0;
-    pipeMap = {};
-    start = new Date();
-    id = util.getUuid();
-    cid: string;
-    replyTo: string;
-    private readonly timeoutWatcher: NodeJS.Timeout;
-    private readonly template: Flow;
-    private readonly parentId: string;
-    private traceId: string;
-    private tracePath: string;
-    private responded = false;
-    private topLevelException = false;
-    private running = true;
+  dataset = {};
+  shared = {};
+  tasks = [];
+  pendingTasks = {};
+  pipeCounter = 0;
+  pipeMap = {};
+  start = new Date();
+  id = util.getUuid();
+  cid: string;
+  replyTo: string;
+  private readonly timeoutWatcher: NodeJS.Timeout;
+  private readonly template: Flow;
+  private readonly parentId: string;
+  private traceId: string;
+  private tracePath: string;
+  private responded = false;
+  private topLevelException = false;
+  private running = true;
 
-    constructor(flowId: string, cid: string, replyTo: string, template: Flow, parentId: string) {
-        this.template = template;
-        this.cid = cid;
-        this.replyTo = replyTo;
-        // initialize the state machine
-        const model = {'instance': this.id, 'cid': cid, 'flow': flowId}
-        
-        if (parentId) {
-            const parent = this.resolveParent(parentId);
-            if (parent) {
-                model['parent'] = parent.shared;
-                model['root'] = parent.shared;
-                this.parentId = parent.id;
-                log.info(`${this.getFlow().id}:${this.id} extends ${parent.getFlow().id}:${parent.id}`);
-            }
-        } else {
-            // this is a sub-flow if parent flow instance is available
-            this.parentId = null;
-            model['parent'] = this.shared;
-            model['root'] = this.shared;
-        }
-        this.dataset['model'] = model;
-        const timeoutTask = new EventEnvelope().setTo('task.executor');
-        timeoutTask.setCorrelationId(this.id).setHeader(TIMEOUT, 'true');
-        this.timeoutWatcher = po.sendLater(timeoutTask, template.ttl);
-    }
+  constructor(
+    flowId: string,
+    cid: string,
+    replyTo: string,
+    template: Flow,
+    parentId: string,
+  ) {
+    this.template = template;
+    this.cid = cid;
+    this.replyTo = replyTo;
+    // initialize the state machine
+    const model = { instance: this.id, cid: cid, flow: flowId };
 
-    private resolveParent(parentId: string): FlowInstance {
-        const parent = Flows.getFlowInstance(parentId);
-        if (parent) {
-            const pid = parent.parentId;
-            if (pid) {
-                return this.resolveParent(pid);                
-            } else {
-                return parent;
-            }
-        } else {
-            return null;
-        }
+    if (parentId) {
+      const parent = this.resolveParent(parentId);
+      if (parent) {
+        model['parent'] = parent.shared;
+        model['root'] = parent.shared;
+        this.parentId = parent.id;
+        log.info(
+          `${this.getFlow().id}:${this.id} extends ${parent.getFlow().id}:${parent.id}`,
+        );
+      }
+    } else {
+      // this is a sub-flow if parent flow instance is available
+      this.parentId = null;
+      model['parent'] = this.shared;
+      model['root'] = this.shared;
     }
+    this.dataset['model'] = model;
+    const timeoutTask = new EventEnvelope().setTo('task.executor');
+    timeoutTask.setCorrelationId(this.id).setHeader(TIMEOUT, 'true');
+    this.timeoutWatcher = po.sendLater(timeoutTask, template.ttl);
+  }
 
-    setTrace(traceId: string, tracePath: string): void {
-        this.traceId = traceId;
-        this.tracePath = tracePath;
-        if (traceId) {
-            const model = this.dataset['model'];
-            model['trace'] = traceId;
-        }
+  private resolveParent(parentId: string): FlowInstance {
+    const parent = Flows.getFlowInstance(parentId);
+    if (parent) {
+      const pid = parent.parentId;
+      if (pid) {
+        return this.resolveParent(pid);
+      } else {
+        return parent;
+      }
+    } else {
+      return null;
     }
+  }
 
-    getStartMillis() {
-        return this.start.getTime();
+  setTrace(traceId: string, tracePath: string): void {
+    this.traceId = traceId;
+    this.tracePath = tracePath;
+    if (traceId) {
+      const model = this.dataset['model'];
+      model['trace'] = traceId;
     }
+  }
 
-    close(): void {
-        if (this.running) {
-            this.running = false;
-            po.cancelFutureEvent(this.timeoutWatcher);
-        }
-    }
+  getStartMillis() {
+    return this.start.getTime();
+  }
 
-    isNotResponded(): boolean {
-        return !this.responded;
+  close(): void {
+    if (this.running) {
+      this.running = false;
+      po.cancelFutureEvent(this.timeoutWatcher);
     }
+  }
 
-    setResponded(responded: boolean): void {
-        this.responded = responded;
-    }
+  isNotResponded(): boolean {
+    return !this.responded;
+  }
 
-    getTraceId(): string {
-        return this.traceId;
-    }
+  setResponded(responded: boolean): void {
+    this.responded = responded;
+  }
 
-    setTraceId(traceId: string): void {
-        this.traceId = traceId;
-    }
+  getTraceId(): string {
+    return this.traceId;
+  }
 
-    getTracePath(): string {
-        return this.tracePath;
-    }
+  setTraceId(traceId: string): void {
+    this.traceId = traceId;
+  }
 
-    setTracePath(tracePath: string): void {
-        this.tracePath = tracePath;
-    }
+  getTracePath(): string {
+    return this.tracePath;
+  }
 
-    topLevelExceptionHappened(): boolean {
-        return this.topLevelException;
-    }
+  setTracePath(tracePath: string): void {
+    this.tracePath = tracePath;
+  }
 
-    setExceptionAtTopLevel(state: boolean): void {
-        this.topLevelException = state;
-    }
+  topLevelExceptionHappened(): boolean {
+    return this.topLevelException;
+  }
 
-    getFlow(): Flow {
-        return this.template;
-    }
+  setExceptionAtTopLevel(state: boolean): void {
+    this.topLevelException = state;
+  }
+
+  getFlow(): Flow {
+    return this.template;
+  }
 }

@@ -12,6 +12,7 @@ test-results/
 
 # Transpiled files
 build/
+dist/
 target/
 
 # VS Code

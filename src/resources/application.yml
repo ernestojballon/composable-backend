@@ -22,5 +22,5 @@ log:
 # health.dependencies: 'demo.health'
 
 #
-# Static HTML folder location - default to "resources/public" of the mercury library if not given.
+# Static HTML folder location (opt-in). Uncomment to serve static files.
 # static.html.folder: '/opt/html'

@@ -103,8 +103,8 @@ export class DemoAuth implements Composable {
 }
 ```
 
-You can define route name, instances, isPublic and interceptor in the `preload` annotation.
-The default values are instances=1, isPublic=false and interceptor=false. In the example, 
+You can define route name, instances, visibility and interceptor in the `preload` annotation.
+The default values are instances=1, visibility='private' and interceptor=false. In the example,
 the number of instances is set to 5. You can set the number of instances from 1 to 500.
 
 The above example is a demo "API authentication" function. The event body is an AsyncHttpRequest object

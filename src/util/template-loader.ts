@@ -8,19 +8,18 @@ const util = new Utility();
  * DO NOT use this directly in your application code.
  */
 export class TemplateLoader {
+  private readonly templateFolder: string;
 
-    private readonly templateFolder: string;
+  constructor() {
+    this.templateFolder ??= util.getFolder('../resources/templates/');
+  }
 
-    constructor() {
-        this.templateFolder ??= util.getFolder("../resources/templates/");
+  getTemplate(name: string): string {
+    const template = this.templateFolder + name;
+    if (fs.existsSync(template)) {
+      return fs.readFileSync(template, { encoding: 'utf-8', flag: 'r' });
+    } else {
+      return null;
     }
-
-    getTemplate(name: string): string {
-        const template = this.templateFolder + name;
-        if (fs.existsSync(template)) {
-            return fs.readFileSync(template, {encoding:'utf-8', flag:'r'});
-        } else {
-            return null;
-        }
-    }
+  }
 }

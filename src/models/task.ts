@@ -3,92 +3,92 @@
  * DO NOT use this directly in your application code.
  */
 export class Task {
-    init: string[] = [];
-    comparator: string[] = [];
-    sequencer: string[] = [];
-    conditions: object[] = [];
-    input: string[] = [];
-    output: string[] = [];
-    nextSteps: string[] = [];
-    pipelineSteps: string[] = [];
-    service: string;
-    functionRoute: string;
-    execution: string;
-    private delay = -1;
-    private delayVar: string = null;
-    private joinTask: string = null;
-    private exceptionTask: string = null;
-    private loopType = "none";
-    private whileModelKey: string = null;
-    private sourceModelKey: string = null;
+  init: string[] = [];
+  comparator: string[] = [];
+  sequencer: string[] = [];
+  conditions: object[] = [];
+  input: string[] = [];
+  output: string[] = [];
+  nextSteps: string[] = [];
+  pipelineSteps: string[] = [];
+  service: string;
+  functionRoute: string;
+  execution: string;
+  private delay = -1;
+  private delayVar: string = null;
+  private joinTask: string = null;
+  private exceptionTask: string = null;
+  private loopType = 'none';
+  private whileModelKey: string = null;
+  private sourceModelKey: string = null;
 
-    constructor(service: string, functionRoute: string, execution: string) {
-        this.service = service;
-        this.functionRoute = functionRoute ?? service;
-        this.execution = execution;
-    }
+  constructor(service: string, functionRoute: string, execution: string) {
+    this.service = service;
+    this.functionRoute = functionRoute ?? service;
+    this.execution = execution;
+  }
 
-    reAssign(functionRoute: string): void {
-        this.functionRoute = functionRoute;
-    }
+  reAssign(functionRoute: string): void {
+    this.functionRoute = functionRoute;
+  }
 
-    setJoinTask(task: string): void {
-        this.joinTask = task;
-    }
+  setJoinTask(task: string): void {
+    this.joinTask = task;
+  }
 
-    getJoinTask(): string {
-        return this.joinTask;
-    }
+  getJoinTask(): string {
+    return this.joinTask;
+  }
 
-    setExceptionTask(task: string): void {
-        this.exceptionTask = task;
-    }
+  setExceptionTask(task: string): void {
+    this.exceptionTask = task;
+  }
 
-    getExceptionTask(): string {
-        return this.exceptionTask;
-    }
+  getExceptionTask(): string {
+    return this.exceptionTask;
+  }
 
-    toString(): string {
-        return JSON.stringify(this);
-    }
+  toString(): string {
+    return JSON.stringify(this);
+  }
 
-    setDelay(delay: number): void {
-        this.delay = delay;
-    }
+  setDelay(delay: number): void {
+    this.delay = delay;
+  }
 
-    getDelay(): number {
-        return this.delay;
-    }
+  getDelay(): number {
+    return this.delay;
+  }
 
-    getDelayVar(): string {
-        return this.delayVar;
-    }
+  getDelayVar(): string {
+    return this.delayVar;
+  }
 
-    setDelayVar(delayVar: string): void {
-        this.delayVar = delayVar;
-    }
+  setDelayVar(delayVar: string): void {
+    this.delayVar = delayVar;
+  }
 
-    setLoopType(loopType: string): void {
-        this.loopType = loopType;
-    }
+  setLoopType(loopType: string): void {
+    this.loopType = loopType;
+  }
 
-    getLoopType(): string {
-        return this.loopType;
-    }
+  getLoopType(): string {
+    return this.loopType;
+  }
 
-    getWhileModelKey(): string {
-        return this.whileModelKey;
-    }
+  getWhileModelKey(): string {
+    return this.whileModelKey;
+  }
 
-    setWhileModelKey(whileModelKey: string): void {
-        this.whileModelKey = whileModelKey;
-    }
+  setWhileModelKey(whileModelKey: string): void {
+    this.whileModelKey = whileModelKey;
+  }
 
-    getSourceModelKey() {
-        return this.sourceModelKey;
-    }
+  getSourceModelKey() {
+    return this.sourceModelKey;
+  }
 
-    setSourceModelKey(sourceModelKey: string): void {
-        this.sourceModelKey = sourceModelKey;
-    }    
+  setSourceModelKey(sourceModelKey: string): void {
+    this.sourceModelKey = sourceModelKey;
+  }
 }

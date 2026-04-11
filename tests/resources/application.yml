@@ -23,8 +23,8 @@ health.dependencies: 'demo.health'
 
 web.component.scan: 'no.such.package'
 #
-# Static HTML folder location - default to "resources/public" of the mercury library if not given.
-# static.html.folder: '/opt/html'
+# Static HTML folder (opt-in)
+static.html.folder: 'classpath:/public'
 
 #
 # event flow configuration

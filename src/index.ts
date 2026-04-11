@@ -9,13 +9,33 @@ export { MultiLevelMap } from './util/multi-level-map.js';
 export { EventEnvelope } from './models/event-envelope.js';
 export { AsyncHttpRequest } from './models/async-http-request.js';
 export { AppException } from './models/app-exception.js';
-export { Composable, Validator, Infer, preload } from './models/composable.js';
-export { ObjectStreamIO, ObjectStreamWriter, ObjectStreamReader } from './system/object-stream.js';
+export {
+  Composable,
+  Validator,
+  Infer,
+  preload,
+  defineComposable,
+} from './models/composable.js';
+export type {
+  Visibility,
+  ComposableResult,
+  ComposableHandler,
+  DefineComposableOptions,
+  DefinedComposable,
+} from './models/composable.js';
+export {
+  ObjectStreamIO,
+  ObjectStreamWriter,
+  ObjectStreamReader,
+} from './system/object-stream.js';
 export { AppConfig, ConfigReader } from './util/config-reader.js';
 export { TemplateLoader } from './util/template-loader.js';
 export { CryptoApi } from './util/crypto-api.js';
-export { TypeScriptClassScanner } from './util/ts-class-scanner.js';
+export {
+  TypeScriptClassScanner,
+  ClassScanUtility,
+} from './util/ts-class-scanner.js';
 export { JavaScriptClassScanner } from './util/js-class-scanner.js';
 export { FlowExecutor } from './adapters/flow-executor.js';
-export { NoOp } from './services/no-op.js';
+export { NoOp, NoOpComposable } from './services/no-op.js';
 export { ResilienceHandler } from './services/resilience-handler.js';
