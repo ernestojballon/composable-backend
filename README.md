@@ -1,20 +1,13 @@
-# Mercury Composable for Node.js
+# Composable Backend
 
-Good news! We have merged our enterprise extension ("Event Script") into the Mercury event-driven
-programming foundation codebase from version 4.2 onwards. It is a comprehensive toolkit to write
-composable applications including microservices and serverless.
+A composable backend framework for building event-driven microservices and serverless applications
+in Node.js.
 
-The specification for this technology is documented under US Patent application 18/459,307. 
-The source code is provided as is under the Apache 2.0 license.
+This project is a derivative work based on
+[Mercury Composable for Node.js](https://github.com/Accenture/mercury-nodejs),
+originally developed by Accenture. See [NOTICE](NOTICE) for full attribution.
 
-The project is available in both Java and Node.js languages.
-
-For Java, please visit [Mercury Composable for Java](https://github.com/Accenture/mercury-composable)
-
-For Node.js, please browse [Mercury Composable for Node](https://github.com/Accenture/mercury-nodejs)
-and [Composable-example](https://github.com/Accenture/mercury-composable-examples)
-
-January 2025
+The source code is provided under the Apache 2.0 license.
 
 # Optimized for Human
 
@@ -41,9 +34,6 @@ A composable application is designed in 3 steps:
 To get started, please visit [Chapter 1, Developer Guide](https://accenture.github.io/mercury-nodejs/guides/CHAPTER-1/)
 and [Methodology](https://accenture.github.io/mercury-nodejs/guides/METHODOLOGY/).
 
-We will illustrate the methodology with a composable application example which is available in this
-repo: [Composable-example](https://github.com/Accenture/mercury-composable-examples)
-
 # Conquer Complexity: Embrace Composable Design
 
 ## Introduction
@@ -55,12 +45,12 @@ build applications that are modular, maintainable, and scalable.
 ## The Perils of Spaghetti Code
 
 We have all encountered it: code that resembles a plate of spaghetti – tangled dependencies, hidden logic,
-and a general sense of dread when approaching modifications. These codebases are difficult to test, debug, 
+and a general sense of dread when approaching modifications. These codebases are difficult to test, debug,
 and update. Composable design patterns offer a solution.
 
 ## Evolution of Design Patterns
 
-Software development methodologies have evolved alongside hardware advancements. In the early days, developers 
+Software development methodologies have evolved alongside hardware advancements. In the early days, developers
 prized efficiency, writing code from scratch due to limited libraries. The rise of frameworks brought structure
 and boilerplate code, but also introduced potential rigidity.
 
@@ -76,19 +66,19 @@ promotes modularity and scalability.
 
 At its core, composable design emphasizes two principles:
 
-1.	*Self-Contained Functions*: Each function is a well-defined unit, handling its own logic and transformations
-    with minimal dependencies.
-2.	*Event Choreography*: Functions communicate through events, allowing for loose coupling and independent
-    execution.
+1. _Self-Contained Functions_: Each function is a well-defined unit, handling its own logic and transformations
+   with minimal dependencies.
+2. _Event Choreography_: Functions communicate through events, allowing for loose coupling and independent
+   execution.
 
 ## Benefits of Composable Design
 
-- *Enhanced Maintainability*: Isolated functions are easier to understand, test, and modify.
-- *Improved Reusability*: Self-contained functions can be easily reused across different parts of your application.
-- *Superior Performance*: Loose coupling reduces bottlenecks and encourages asynchronous execution.
-- *Streamlined Testing*: Well-defined functions facilitate unit testing and isolate potential issues.
-- *Simplified Debugging*: Independent functions make it easier to pinpoint the source of errors.
-- *Technology Agnostic*: You may use your preferred frameworks and tools to write composable code, 
+- _Enhanced Maintainability_: Isolated functions are easier to understand, test, and modify.
+- _Improved Reusability_: Self-contained functions can be easily reused across different parts of your application.
+- _Superior Performance_: Loose coupling reduces bottlenecks and encourages asynchronous execution.
+- _Streamlined Testing_: Well-defined functions facilitate unit testing and isolate potential issues.
+- _Simplified Debugging_: Independent functions make it easier to pinpoint the source of errors.
+- _Technology Agnostic_: You may use your preferred frameworks and tools to write composable code,
   allowing for easier future adaptations.
 
 ## Implementing Composable Design
@@ -97,9 +87,9 @@ While seemingly simple, implementing composable design can involve some initial 
 
 Here's a breakdown of the approach:
 
-- *Function Design*: Each function serves a specific purpose, with clearly defined inputs and outputs.
-- *Event Communication*: Functions communicate through well-defined events, avoiding direct dependencies.
-- *Choreography*: An event manager, with a state machine and event flow configuration, sequences and triggers functions
+- _Function Design_: Each function serves a specific purpose, with clearly defined inputs and outputs.
+- _Event Communication_: Functions communicate through well-defined events, avoiding direct dependencies.
+- _Choreography_: An event manager, with a state machine and event flow configuration, sequences and triggers functions
   based on events.
 
 ## Conclusion
