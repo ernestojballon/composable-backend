@@ -14,6 +14,18 @@ The source code is provided under the Apache 2.0 license.
 npm install composable-backend
 ```
 
+### Optional Kafka Add-On
+
+Kafka support is being split into a first-party companion package so the core library can stay lean for HTTP-only and serverless use cases.
+
+When the package is available, the intended installation will be:
+
+```bash
+npm install composable-backend @composable-backend/kafka kafkajs
+```
+
+Until then, use the Kafka adapter approach described in [Chapter 8](guides/CHAPTER-8.md).
+
 ### Minimal Project
 
 ```text
@@ -215,6 +227,7 @@ That gives you:
 
 - Read [Chapter 1, Developer Guide](guides/CHAPTER-1.md) for a broader walkthrough
 - Read [Chapter 7, API Overview](guides/CHAPTER-7.md) for platform APIs
+- Read [Chapter 8, Kafka Flow Adapter](guides/CHAPTER-8.md) for the current Kafka integration approach
 - Read [Methodology](guides/METHODOLOGY.md) for the composable design model
 - Read [Appendix I](guides/APPENDIX-I.md) for configuration details
 
