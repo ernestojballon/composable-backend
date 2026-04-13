@@ -39,3 +39,4 @@ export { JavaScriptClassScanner } from './util/js-class-scanner.js';
 export { FlowExecutor } from './adapters/flow-executor.js';
 export { NoOp, NoOpComposable } from './services/no-op.js';
 export { ResilienceHandler } from './services/resilience-handler.js';
+export { RateLimiter } from './services/rate-limiter.js';

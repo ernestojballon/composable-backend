@@ -356,6 +356,6 @@ artifactory.
           
 <br/>
 
-|              Chapter-4              |                   Home                    |            Chapter-6            |
-|:-----------------------------------:|:-----------------------------------------:|:-------------------------------:|
-| [Event Script Syntax](CHAPTER-4.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Event over HTTP](CHAPTER-6.md) |
+|                      Previous                        |                   Home                    |                        Next                          |
+|:----------------------------------------------------:|:-----------------------------------------:|:----------------------------------------------------:|
+| [Custom Flow Adapters](09-CUSTOM-FLOW-ADAPTERS.md)   | [Table of Contents](TABLE-OF-CONTENTS.md) | [Configuration Reference](APPENDIX-CONFIGURATION.md) |

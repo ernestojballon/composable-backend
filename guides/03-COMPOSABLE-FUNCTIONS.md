@@ -37,7 +37,7 @@ For event choreography, input body is represented as a JSON object of key-values
 convention to map a subset from one function to another if needed.
 
 In addition to the event body, you may pass additional parameters to the user function as event headers.
-We will discuss this in [Chapter 4 - Event Script Syntax](CHAPTER-4.md).
+We will discuss this in [Event Scripting](05-EVENT-SCRIPTING.md).
 
 ## Non-blocking design
 
@@ -132,7 +132,7 @@ encapsulate them into a separate worker thread and expose their capabilities as 
 
 For more details, please refer to:
 
-1. [Composable Developer Guide Chapter-4](CHAPTER-4.md#using-worker-threads)
+1. [Event Scripting - Worker Threads](05-EVENT-SCRIPTING.md#using-worker-threads)
 2. [Mozilla Developer Guide](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)
 3. [Node.js Worker Thread API Documentation](https://nodejs.org/api/worker_threads.html)
 
@@ -142,6 +142,6 @@ The composable-worker.ts class may be used as a template:
 [ComposableWorker](https://github.com/ernestojballon/composable-backend-examples/blob/main/node/composable-example/src/workers/composable-worker.ts)
 <br/>
 
-|          Chapter-1           |                   Home                    |            Chapter-3            |
-|:----------------------------:|:-----------------------------------------:|:-------------------------------:|
-| [Introduction](CHAPTER-1.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [REST Automation](CHAPTER-3.md) |
+|                Previous                  |                   Home                    |                 Next                     |
+|:----------------------------------------:|:-----------------------------------------:|:----------------------------------------:|
+| [Getting Started](02-GETTING-STARTED.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [REST Automation](04-REST-AUTOMATION.md) |

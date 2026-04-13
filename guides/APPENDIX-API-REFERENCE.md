@@ -214,6 +214,44 @@ static async downloadFile(streamId: string, filename: string) {
 *IMPORTANT*: Do not set the "content-length" HTTP header because the system will automatically compute the
 correct content-length for small payload. For large payload, it will use the chunking method.
 
+## RateLimiter
+
+The `RateLimiter` provides in-memory sliding-window rate limiting for REST endpoints.
+Typically you interact with it via the `rate_limit` field in `rest.yaml`, but the API
+is exported for programmatic use.
+
+```typescript
+import { RateLimiter } from 'composable-backend';
+```
+
+| Method | Returns | Description |
+|:-------|:--------|:------------|
+| `RateLimiter.getInstance()` | `RateLimiter` | Get the singleton instance |
+| `allow(key, limit, windowMs)` | `boolean` | Check if a request is allowed and record it |
+| `RateLimiter.parseRateLimit(value)` | `[number, number] \| null` | Parse a rate limit string (e.g. `"100"`, `"50/second"`) |
+
+A plain number (e.g. `"100"`) defaults to per-minute. Supported units: `second`/`sec`/`s`,
+`minute`/`min`/`m`, `hour`/`hr`/`h`.
+
+## CryptoApi
+
+AES-256-GCM encryption utility for symmetric encryption of sensitive data.
+
+```typescript
+import { CryptoApi } from 'composable-backend';
+
+const crypto = new CryptoApi();
+const key = crypto.generateAesKey();
+const encrypted = crypto.aesEncrypt(Buffer.from('hello'), key);
+const decrypted = crypto.aesDecrypt(encrypted, key);
+```
+
+| Method | Returns | Description |
+|:-------|:--------|:------------|
+| `generateAesKey()` | `Buffer` | Generate a random 32-byte AES key |
+| `aesEncrypt(clearText, key)` | `Buffer` | Encrypt with AES-256-GCM (12-byte IV + 16-byte auth tag) |
+| `aesDecrypt(cipherText, key)` | `Buffer` | Decrypt with AES-256-GCM |
+
 ## Application log format
 
 The system supports 3 types of log formats. You can set "log.format" parameter in application.yml to
@@ -246,6 +284,6 @@ node myapp.js -Dlog.format=json -C/tmp/config/application.yml
   but you can only configure a single "-C" argument.
 <br/>
 
-|             Appendix-I              |                   Home                    | 
-|:-----------------------------------:|:-----------------------------------------:|
-| [Application config](APPENDIX-I.md) | [Table of Contents](TABLE-OF-CONTENTS.md) |
+|                      Previous                            |                   Home                    | 
+|:--------------------------------------------------------:|:-----------------------------------------:|
+| [Configuration Reference](APPENDIX-CONFIGURATION.md)    | [Table of Contents](TABLE-OF-CONTENTS.md) |

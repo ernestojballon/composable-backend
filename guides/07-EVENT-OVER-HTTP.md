@@ -93,9 +93,9 @@ This enforces every incoming request to the Event API endpoint to be authenticat
 before passing to the Event API service. You can plug in your own authentication service such as OAuth 2.0
 "bearer token" validation.
 
-Please refer to [Chapter-3 - REST automation](CHAPTER-3.md) for details.
+Please refer to [REST Automation](04-REST-AUTOMATION.md) for details.
 <br/>
 
-|               Chapter-5                |                   Home                    |          Chapter-7           |
-|:--------------------------------------:|:-----------------------------------------:|:----------------------------:|
-| [Build, test and deploy](CHAPTER-5.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [API overview](CHAPTER-7.md) |
+|                        Previous                          |                   Home                    |                    Next                      |
+|:--------------------------------------------------------:|:-----------------------------------------:|:--------------------------------------------:|
+| [Platform and PostOffice](06-PLATFORM-AND-POSTOFFICE.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Kafka Integration](08-KAFKA-INTEGRATION.md) |

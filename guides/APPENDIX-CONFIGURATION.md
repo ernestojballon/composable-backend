@@ -22,6 +22,7 @@ files using the `ConfigReader` API.
 | health.dependencies       | e.g. 'database.health'                                          | Optional |
 | modules.autostart         | list of composable functions to start                           | Optional |
 | max.model.array.size      | max size of a dynamic model variable as index<br>(Default 1000) | Optional |
+| rate_limit (rest.yaml)    | Per-endpoint rate limit, e.g. `100` (per min) or `50/second`   | Optional |
 
 ## Configuration management
 
@@ -130,6 +131,6 @@ The following route names are reserved by the system.
 
 <br/>
 
-|              Chapter-8              |                   Home                    |             Appendix-II             |
-|:-----------------------------------:|:-----------------------------------------:|:-----------------------------------:|
-| [Custom Flow Adapter](CHAPTER-8.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Async HTTP client](APPENDIX-II.md) |
+|                    Previous                      |                   Home                    |                   Next                       |
+|:------------------------------------------------:|:-----------------------------------------:|:--------------------------------------------:|
+| [Build, Test and Deploy](10-BUILD-TEST-DEPLOY.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [API Reference](APPENDIX-API-REFERENCE.md)   |

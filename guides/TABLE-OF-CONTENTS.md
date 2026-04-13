@@ -1,23 +1,27 @@
 # Developer's Guide
 
-Mercury version 3 is a toolkit for writing composable applications.
+Composable Backend is a framework for building event-driven microservices and serverless applications in Node.js.
 
-[Methodology](METHODOLOGY.md)
+[1 - Methodology](01-METHODOLOGY.md)
 
-[Chapter 1 - Getting Started](CHAPTER-1.md)
+[2 - Getting Started](02-GETTING-STARTED.md)
 
-[Chapter 2 - Function Execution Strategies](CHAPTER-2.md)
+[3 - Composable Functions](03-COMPOSABLE-FUNCTIONS.md)
 
-[Chapter 3 - REST Automation](CHAPTER-3.md)
+[4 - REST Automation](04-REST-AUTOMATION.md)
 
-[Chapter 4 - Event Script Syntax](CHAPTER-4.md)
+[5 - Event Scripting](05-EVENT-SCRIPTING.md)
 
-[Chapter 5 - Build, Test and Deploy](CHAPTER-5.md)
+[6 - Platform and PostOffice](06-PLATFORM-AND-POSTOFFICE.md)
 
-[Chapter 6 - Event over HTTP](CHAPTER-6.md)
+[7 - Event over HTTP](07-EVENT-OVER-HTTP.md)
 
-[Chapter 7 - API Overview](CHAPTER-7.md)
+[8 - Kafka Integration](08-KAFKA-INTEGRATION.md)
 
-[Appendix I - application configuration](APPENDIX-I.md)
+[9 - Custom Flow Adapters](09-CUSTOM-FLOW-ADAPTERS.md)
 
-[Appendix II - Actuators, HTTP client and More](APPENDIX-II.md)
+[10 - Build, Test and Deploy](10-BUILD-TEST-DEPLOY.md)
+
+[Appendix - Configuration Reference](APPENDIX-CONFIGURATION.md)
+
+[Appendix - API Reference](APPENDIX-API-REFERENCE.md)

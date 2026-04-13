@@ -2,6 +2,7 @@ import { Logger } from './logger.js';
 import { StringBuilder, Utility } from './utility.js';
 import { ConfigReader } from './config-reader.js';
 import { MultiLevelMap } from './multi-level-map.js';
+import { RateLimiter } from '../services/rate-limiter.js';
 
 const log = Logger.getInstance();
 const util = new Utility();
@@ -29,6 +30,7 @@ const AUTHENTICATION = 'authentication';
 const TRACING = 'tracing';
 const TIMEOUT = 'timeout';
 const URL_REWRITE = 'url_rewrite';
+const RATE_LIMIT = 'rate_limit';
 const TRUST_ALL_CERT = 'trust_all_cert';
 const ASYNC_HTTP_REQUEST = 'async.http.request';
 const VALID_METHODS = [
@@ -108,6 +110,8 @@ export class RouteInfo {
   host: string = null;
   trustAllCert = false;
   urlRewrite = new Array<string>();
+  rateLimitCount = 0;
+  rateLimitWindowMs = 0;
 
   getAuthService(headerKey: string, headerValue = '*'): string {
     const result = this.authServices.get(
@@ -588,6 +592,20 @@ class RestEntry {
     info.timeoutSeconds = this.getDurationInSeconds(
       config.getProperty(REST + '[' + idx + '].' + TIMEOUT),
     );
+    const rateLimitValue = config.getProperty(
+      REST + '[' + idx + '].' + RATE_LIMIT,
+    );
+    if (rateLimitValue) {
+      const parsed = RateLimiter.parseRateLimit(rateLimitValue);
+      if (parsed) {
+        info.rateLimitCount = parsed[0];
+        info.rateLimitWindowMs = parsed[1];
+      } else {
+        log.warn(
+          `Invalid rate_limit '${rateLimitValue}' - expected a number (e.g. 100) or count/unit (e.g. 50/second)`,
+        );
+      }
+    }
     const corsId = config.getProperty(REST + '[' + idx + '].' + CORS);
     if (corsId) {
       if (this.corsConfig.has(corsId)) {
@@ -701,13 +719,17 @@ class RestEntry {
         this.routes.set(key, info);
         if (m != OPTIONS_METHOD) {
           const flowHint = info.flowId ? `, flow=${info.flowId}` : '';
+          const rlHint =
+            info.rateLimitCount > 0
+              ? `, rate_limit=${info.rateLimitCount}/${info.rateLimitWindowMs <= 1000 ? 'second' : info.rateLimitWindowMs <= 60000 ? 'minute' : 'hour'}`
+              : '';
           if (info.defaultAuthService) {
             log.info(
-              `${m} ${nUrl} -> ${info.defaultAuthService} -> ${info.services}, timeout=${info.timeoutSeconds}s, tracing=${info.tracing}${flowHint}`,
+              `${m} ${nUrl} -> ${info.defaultAuthService} -> ${info.services}, timeout=${info.timeoutSeconds}s, tracing=${info.tracing}${flowHint}${rlHint}`,
             );
           } else {
             log.info(
-              `${m} ${nUrl} -> ${info.services}, timeout=${info.timeoutSeconds}s, tracing=${info.tracing}${flowHint}`,
+              `${m} ${nUrl} -> ${info.services}, timeout=${info.timeoutSeconds}s, tracing=${info.tracing}${flowHint}${rlHint}`,
             );
           }
         }

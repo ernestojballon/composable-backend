@@ -164,7 +164,7 @@ configuration files in the libraries if your application does not provide a conf
 to override a default configuration file in the library. For example, your unit tests would
 use a configuration file in the "src/resources" folder if it is not in the "tests/resources" folder.
 
-For details, please refer to the Configuration management section in [Appendix-I](APPENDIX-I.md)
+For details, please refer to the Configuration management section in [Configuration Reference](APPENDIX-CONFIGURATION.md)
 
 Your build log may look like this:
 
@@ -503,7 +503,7 @@ Composable application is by definition cloud native. It is designed to be deplo
 ## Event choreography by configuration
 
 The best practice for composable design is event choreography by configuration (`Event Script`) discussed above.
-We will examine the Event Script syntax in [Chapter 4](CHAPTER-4.md).
+We will examine the Event Script syntax in [Event Scripting](05-EVENT-SCRIPTING.md).
 
 Generally, you only need to use a very minimal set of mercury core APIs in your user function.
 e.g. use PostOffice to obtain a trackable event emitter and AsyncHttpRequest to connect to external system.
@@ -519,9 +519,9 @@ For example, just an "Import" statement of another function would create tight c
 even when using reactive or event-driven programming styles.
 
 However, if there is a use case that you prefer to write orchestration logic by code, you may use the Mercury core
-APIs to do event-driven programming. API overview will be covered in [Chapter 7](CHAPTER-7.md).
+APIs to do event-driven programming. API overview will be covered in [Platform and PostOffice](06-PLATFORM-AND-POSTOFFICE.md).
 <br/>
 
-|          Methodology          |                   Home                    |                  Chapter-2                  |
-|:-----------------------------:|:-----------------------------------------:|:-------------------------------------------:|
-| [Methodology](METHODOLOGY.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Function Execution Strategy](CHAPTER-2.md) |
+|             Previous              |                   Home                    |                     Next                          |
+|:---------------------------------:|:-----------------------------------------:|:-------------------------------------------------:|
+| [Methodology](01-METHODOLOGY.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Composable Functions](03-COMPOSABLE-FUNCTIONS.md) |

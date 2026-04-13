@@ -12,6 +12,7 @@ import { EventEnvelope } from '../models/event-envelope.js';
 import { AppException } from '../models/app-exception.js';
 import { AsyncHttpRequest } from '../models/async-http-request.js';
 import { RoutingEntry, AssignedRoute, HeaderInfo } from '../util/routing.js';
+import { RateLimiter } from '../services/rate-limiter.js';
 import { AppConfig, ConfigReader } from '../util/config-reader.js';
 import { ContentTypeResolver } from '../util/content-type-resolver.js';
 import { Server } from 'http';
@@ -896,6 +897,19 @@ class RestEngine {
     // set cors headers
     if (route.info.corsId) {
       this.setCorsHeaders(route, router, res);
+    }
+    // check rate limit before processing
+    if (route.info.rateLimitCount > 0) {
+      const rlKey = method + ':' + route.info.url;
+      if (
+        !RateLimiter.getInstance().allow(
+          rlKey,
+          route.info.rateLimitCount,
+          route.info.rateLimitWindowMs,
+        )
+      ) {
+        throw new AppException(429, 'Too many requests');
+      }
     }
     // check if target service is available
     if (!po.exists(route.info.primary)) {

@@ -239,6 +239,6 @@ and Node.js have different syntax for annotation, they use a similar declarative
   It can be used with horizontal scaling to optimize use of computing resources.
 <br>
 
-|                   Home                    |          Chapter-1           |
-|:-----------------------------------------:|:----------------------------:|
-| [Table of Contents](TABLE-OF-CONTENTS.md) | [Introduction](CHAPTER-1.md) |
+|                   Home                    |                Next                  |
+|:-----------------------------------------:|:------------------------------------:|
+| [Table of Contents](TABLE-OF-CONTENTS.md) | [Getting Started](02-GETTING-STARTED.md) |

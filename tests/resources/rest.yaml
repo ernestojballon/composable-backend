@@ -60,6 +60,7 @@ rest:
     methods: ['POST']
     url: "/api/hello/list"
     timeout: 15s
+    rate_limit: 100
     cors: cors_1
     headers: header_1
 

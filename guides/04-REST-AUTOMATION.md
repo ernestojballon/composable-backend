@@ -74,6 +74,32 @@ metadata such as method, url path, HTTP request headers from the object.
 
 The "timeout" value is the maximum time that REST endpoint will wait for a response from your function.
 If there is no response within the specified time interval, the user will receive an HTTP-408 timeout exception.
+A plain number is treated as seconds (e.g. `timeout: 10`). You can also specify a unit: `10s`, `5m`, `1h`.
+
+### Rate limiting
+
+Add `rate_limit` to any REST endpoint to cap requests using a sliding window.
+A plain number defaults to requests per minute:
+
+```yaml
+  - service: "v1.lead.process"
+    methods: ['POST']
+    url: "/api/leads"
+    rate_limit: 100
+    timeout: 10s
+```
+
+Override the time window when needed:
+
+```yaml
+    rate_limit: 50/second
+    rate_limit: 1000/hour
+```
+
+Supported units: `second` (`sec`, `s`), `minute` (`min`, `m`), `hour` (`hr`, `h`).
+
+When the limit is exceeded, the server returns **HTTP 429** (Too Many Requests).
+Rate limiting is checked per endpoint (method + URL) before authentication.
 
 The "authentication" tag is optional. If configured, the route name given in the authentication tag will be used.
 The input event will be delivered to a function with the authentication route name. In this example, it is
@@ -219,6 +245,6 @@ HTTP request body in this order:
 5. all other types of content will be rendered as byte array (Buffer) with a payload limit of 2 MB
 <br/>
 
-|                   Chapter-2                   |                   Home                    |              Chapter-4              |
-|:---------------------------------------------:|:-----------------------------------------:|:-----------------------------------:|
-| [Function Execution Strategies](CHAPTER-2.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Event Script Syntax](CHAPTER-4.md) |
+|                     Previous                       |                   Home                    |                  Next                    |
+|:--------------------------------------------------:|:-----------------------------------------:|:----------------------------------------:|
+| [Composable Functions](03-COMPOSABLE-FUNCTIONS.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Event Scripting](05-EVENT-SCRIPTING.md) |

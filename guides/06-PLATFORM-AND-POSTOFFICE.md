@@ -276,7 +276,7 @@ remoteRequest(event: EventEnvelope, endpoint: string,
 1. Example-1 makes a RPC call with a 5-second timeout to "hello.world".
 2. Example-2 makes an "event over HTTP" RPC call to "hello.world" in another application instance.
 
-"Event over HTTP" is an important topic. Please refer to [Chapter 6](CHAPTER-6.md) for more details.
+"Event over HTTP" is an important topic. Please refer to [Event over HTTP](07-EVENT-OVER-HTTP.md) for more details.
 
 ### Make a fork-n-join parallel RPC
 
@@ -297,7 +297,7 @@ parallelRequest(events: Array<EventEnvelope>, timeout = 60000): Promise<Array<Ev
 1. Example-1 makes a RPC call with a 5-second timeout to "hello.world".
 2. Example-2 makes an "event over HTTP" RPC call to "hello.world" in another application instance.
 
-"Event over HTTP" is an important topic. Please refer to [Chapter 6](CHAPTER-6.md) for more details.
+"Event over HTTP" is an important topic. Please refer to [Event over HTTP](07-EVENT-OVER-HTTP.md) for more details.
 
 ### Retrieve trace ID and path
 
@@ -544,7 +544,7 @@ For the application that uses your composable libraries, it must include the pac
 
 ## Minimalist API design
 
-For configuration based Event Choreography, please refer to [Chapter-4](CHAPTER-4.md) for more details.
+For configuration based Event Choreography, please refer to [Event Scripting](05-EVENT-SCRIPTING.md) for more details.
 
 You can build powerful composable application without a lot of APIs. "Less" is always better in
 composable methodology.
@@ -581,6 +581,6 @@ API changes.
 For support, please open an issue on [GitHub](https://github.com/ernestojballon/composable-backend/issues).
 <br/>
 
-|            Chapter-6            |                   Home                    |              Chapter-8              |
-|:-------------------------------:|:-----------------------------------------:|:-----------------------------------:|
-| [Event over HTTP](CHAPTER-6.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Custom Flow Adapter](CHAPTER-8.md) |
+|                  Previous                    |                   Home                    |                  Next                    |
+|:--------------------------------------------:|:-----------------------------------------:|:----------------------------------------:|
+| [Event Scripting](05-EVENT-SCRIPTING.md)     | [Table of Contents](TABLE-OF-CONTENTS.md) | [Event over HTTP](07-EVENT-OVER-HTTP.md) |

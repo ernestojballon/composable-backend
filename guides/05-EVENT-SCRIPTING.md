@@ -1559,6 +1559,6 @@ some legacy code or open sources that you have no direct control.
 
 <br/>
 
-|             Chapter-3             |                    Home                     |                Chapter-5                 |
-|:---------------------------------:|:-------------------------------------------:|:----------------------------------------:|
-|  [REST Automation](CHAPTER-3.md)  |  [Table of Contents](TABLE-OF-CONTENTS.md)  |  [Build, Test and Deploy](CHAPTER-5.md)  |
+|                 Previous                 |                    Home                     |                         Next                             |
+|:----------------------------------------:|:-------------------------------------------:|:--------------------------------------------------------:|
+| [REST Automation](04-REST-AUTOMATION.md) |  [Table of Contents](TABLE-OF-CONTENTS.md)  | [Platform and PostOffice](06-PLATFORM-AND-POSTOFFICE.md) |
