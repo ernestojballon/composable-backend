@@ -16,33 +16,24 @@ npm install composable-backend
 
 ### Optional Kafka Add-On
 
-Kafka support is being split into a first-party companion package so the core library can stay lean for HTTP-only and serverless use cases.
-
-When the package is available, the intended installation will be:
-
 ```bash
-npm install composable-backend @composable-backend/kafka kafkajs
+npm install @composable-backend/kafka kafkajs
 ```
-
-Until then, use the Kafka adapter approach described in [Chapter 8](guides/CHAPTER-8.md).
 
 ### Minimal Project
 
 ```text
 your-app/
   src/
-    main.ts
-    services/
-      hello-world.ts
-    resources/
+    hello-world.task.ts       ← auto-discovered by convention
+    config/
+      preload.ts
       application.yml
-  tests/
-    hello-world.test.ts
 ```
 
 ### Minimal Config
 
-Create `src/resources/application.yml`:
+Create `src/config/application.yml`:
 
 ```yaml
 application.name: 'quickstart-demo'
@@ -52,7 +43,7 @@ rest.automation: false
 
 ### Minimal Function
 
-Create `src/services/hello-world.ts`:
+Create `src/hello-world.task.ts`:
 
 ```ts
 import { defineComposable, EventEnvelope } from 'composable-backend';
@@ -70,38 +61,61 @@ export default defineComposable({
 
 ### Minimal App Bootstrap
 
+Create `src/config/preload.ts`:
+
+```ts
+import { fileURLToPath } from 'url';
+import { AppConfig, Platform } from 'composable-backend';
+
+function getRootFolder(): string {
+  const folder = fileURLToPath(new URL('.', import.meta.url));
+  return folder.includes('\\') ? folder.replaceAll('\\', '/') : folder;
+}
+
+export class ComposableLoader {
+  static async initialize(): Promise<void> {
+    const configDir = getRootFolder();
+    AppConfig.getInstance(configDir + 'resources');
+
+    const platform = Platform.getInstance();
+    await platform.autoScan(configDir + '..');
+
+    platform.runForever();
+    await platform.getReady();
+  }
+}
+```
+
 Create `src/main.ts`:
 
 ```ts
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { AppConfig, Platform } from 'composable-backend';
-import helloWorld from './services/hello-world.js';
+import { ComposableLoader } from './config/preload.js';
 
-function getResourcePath() {
-  const here = dirname(fileURLToPath(import.meta.url));
-  return join(here, 'resources');
-}
-
-async function main() {
-  AppConfig.getInstance(getResourcePath());
-
-  const platform = Platform.getInstance();
-  await platform.getReady();
-
-  platform.registerComposable(helloWorld);
-  platform.runForever();
-}
-
-main().catch(error => {
+ComposableLoader.initialize().catch(error => {
   console.error(error);
   process.exit(1);
 });
 ```
 
+### Dev Mode
+
+Add to `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  }
+}
+```
+
+`npm run dev` runs directly from source with instant restart on file changes. No build step needed during development.
+
 ### Example Request
 
-You can send an in-memory RPC request to your composable with `PostOffice`:
+Send an in-memory RPC request to your composable with `PostOffice`:
 
 ```ts
 import { EventEnvelope, PostOffice, Sender } from 'composable-backend';
@@ -128,11 +142,11 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { AppConfig, EventEnvelope, Platform, PostOffice, Sender } from 'composable-backend';
-import helloWorld from '../src/services/hello-world.js';
+import helloWorld from '../src/hello-world.task.js';
 
 function getResourcePath() {
   const here = dirname(fileURLToPath(import.meta.url));
-  return join(here, '../src/resources');
+  return join(here, '../src/config');
 }
 
 describe('hello.world', () => {
@@ -164,11 +178,67 @@ Run it with:
 npx vitest run
 ```
 
+## File Conventions
+
+The framework uses file naming conventions to auto-discover tasks and flows:
+
+| Convention | What it does |
+|---|---|
+| `*.task.ts` | Auto-registered as a composable function (must default-export a `defineComposable()`) |
+| `*.flow.yml` | Auto-loaded as a flow definition |
+
+Place them **anywhere** inside `src/`. The scanner searches recursively — organize by feature, domain, or however you prefer:
+
+```text
+src/
+  leads/
+    lead-score.task.ts
+    lead-validate.task.ts
+    process-lead.flow.yml
+  orders/
+    order-process.task.ts
+    process-order.flow.yml
+  config/
+    preload.ts
+    application.yml
+    rest.yaml
+```
+
+Or flat:
+
+```text
+src/
+  lead-score.task.ts
+  process-lead.flow.yml
+  config/...
+```
+
+Both work. The scanner finds every `*.task.ts` and `*.flow.yml` under `src/` regardless of folder structure.
+
+### Auto-scan from libraries
+
+Libraries listed in `web.component.scan` are also scanned for `*.task.js` and `*.flow.yml` files:
+
+```yaml
+# application.yml
+web.component.scan: 'my-composable-library'
+```
+
+### Manual registration
+
+You can still register composables manually alongside auto-scan. This is needed for external packages that don't follow the naming convention:
+
+```ts
+import { KafkaAdapter, KafkaNotification } from '@composable-backend/kafka';
+
+await platform.autoScan(srcDir);
+platform.registerComposable(KafkaAdapter);
+platform.registerComposable(KafkaNotification);
+```
+
 ## Two Authoring Styles
 
-The library supports both styles:
-
-### Function Style
+### Function Style (recommended)
 
 ```ts
 import { defineComposable, EventEnvelope } from 'composable-backend';
@@ -180,12 +250,6 @@ export default defineComposable({
     return evt.getBody() ?? {};
   },
 });
-```
-
-Register it with:
-
-```ts
-platform.registerComposable(leadLogScored);
 ```
 
 ### Class Style
@@ -205,7 +269,7 @@ export class LeadLogScored implements Composable {
 }
 ```
 
-Register it with:
+Class-style composables are registered manually:
 
 ```ts
 platform.register('v1.lead.log-scored', new LeadLogScored(), 10);
@@ -225,19 +289,12 @@ That gives you:
 
 ## Next Steps
 
-- Read [Chapter 1, Developer Guide](guides/CHAPTER-1.md) for a broader walkthrough
-- Read [Chapter 7, API Overview](guides/CHAPTER-7.md) for platform APIs
-- Read [Chapter 8, Kafka Flow Adapter](guides/CHAPTER-8.md) for the current Kafka integration approach
-- Read [Methodology](guides/METHODOLOGY.md) for the composable design model
-- Read [Appendix I](guides/APPENDIX-I.md) for configuration details
-
-## Conquer Complexity: Embrace Composable Design
-
-Software development is an ongoing battle against complexity. Over time, codebases can become tangled and unwieldy, hindering innovation and maintenance. Composable design patterns offer a path toward modular, maintainable, scalable applications by emphasizing self-contained functions and event-driven communication.
-
-At its core, composable design emphasizes two principles:
-
-1. Self-contained functions
-2. Event choreography
-
-That combination improves maintainability, reusability, throughput, debugging, and testing while allowing you to use your preferred frameworks and tools inside each composable task.
+- Read [Getting Started](guides/02-GETTING-STARTED.md) for a broader walkthrough
+- Read [Composable Functions](guides/03-COMPOSABLE-FUNCTIONS.md) for function authoring patterns
+- Read [REST Automation](guides/04-REST-AUTOMATION.md) for HTTP endpoint configuration
+- Read [Event Scripting](guides/05-EVENT-SCRIPTING.md) for flow orchestration
+- Read [Platform and PostOffice](guides/06-PLATFORM-AND-POSTOFFICE.md) for core APIs
+- Read [Kafka Integration](guides/08-KAFKA-INTEGRATION.md) for Kafka setup
+- Read [Methodology](guides/01-METHODOLOGY.md) for the composable design model
+- Read [Configuration Reference](guides/APPENDIX-CONFIGURATION.md) for all config parameters
+- Read [API Reference](guides/APPENDIX-API-REFERENCE.md) for all API methods

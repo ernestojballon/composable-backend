@@ -17,6 +17,8 @@ import { ContentTypeResolver } from '../util/content-type-resolver.js';
 import { EventHttpResolver } from '../util/event-http-resolver.js';
 import { MultiLevelMap } from '../util/multi-level-map.js';
 import fs from 'fs';
+import path from 'path';
+import { CompileFlows } from '../automation/compile-flows.js';
 
 const log = Logger.getInstance();
 const registry = FunctionRegistry.getInstance();
@@ -289,6 +291,21 @@ export class Platform {
    */
   registerComposable(composable: DefinedComposable): void {
     self.registerComposable(composable);
+  }
+
+  /**
+   * Auto-scan a directory for composable tasks (*.task.ts / *.task.js)
+   * and flow definitions (*.flow.yml). Recursively searches all subdirectories.
+   *
+   * Tasks must default-export a DefinedComposable (from defineComposable()).
+   * Flows must be valid flow YAML files.
+   *
+   * Libraries listed in web.component.scan are also scanned for *.task.js files.
+   *
+   * @param srcDir the source directory to scan (e.g. project's src/ folder)
+   */
+  async autoScan(srcDir: string): Promise<void> {
+    await self.autoScan(srcDir);
   }
 
   /**
@@ -886,6 +903,114 @@ class EventSystem {
       composable.visibility,
       composable.interceptor,
     );
+  }
+
+  async autoScan(srcDir: string): Promise<void> {
+    if (!fs.existsSync(srcDir) || !fs.statSync(srcDir).isDirectory()) {
+      log.warn(`autoScan: directory not found - ${srcDir}`);
+      return;
+    }
+    // Determine file extension based on runtime (.ts for tsx, .js for node)
+    const taskExt = srcDir.includes('/src') ? '.task.ts' : '.task.js';
+    // Scan for task files
+    const taskFiles = this.findFilesByExtension(srcDir, taskExt);
+    let taskCount = 0;
+    for (const filePath of taskFiles) {
+      try {
+        const mod = await import(filePath);
+        const composable = mod.default;
+        if (
+          composable &&
+          typeof composable === 'object' &&
+          'process' in composable &&
+          'handleEvent' in composable
+        ) {
+          this.registerComposable(composable as DefinedComposable);
+          taskCount++;
+        } else {
+          log.warn(
+            `autoScan: ${path.basename(filePath)} does not export a valid composable as default`,
+          );
+        }
+      } catch (e) {
+        log.warn(
+          `autoScan: failed to load ${path.basename(filePath)} - ${e.message}`,
+        );
+      }
+    }
+    if (taskCount > 0) {
+      log.info(`Auto-discovered ${taskCount} task(s) from ${srcDir}`);
+    }
+    // Scan for flow files
+    const compiler = new CompileFlows();
+    compiler.loadFlowsFromDirectory(srcDir);
+    // Also scan libraries listed in web.component.scan
+    const config = AppConfig.getInstance();
+    const packages = config.getProperty('web.component.scan');
+    if (packages) {
+      const segments = srcDir.split('/');
+      // walk up to find node_modules
+      let base = srcDir;
+      while (
+        segments.length > 0 &&
+        !fs.existsSync(path.join(base, 'node_modules'))
+      ) {
+        segments.pop();
+        base = segments.join('/');
+      }
+      if (fs.existsSync(path.join(base, 'node_modules'))) {
+        const packageList = packages
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean);
+        for (const pkg of packageList) {
+          const pkgDist = path.join(base, 'node_modules', pkg, 'dist');
+          if (fs.existsSync(pkgDist)) {
+            const libTasks = this.findFilesByExtension(pkgDist, '.task.js');
+            let libCount = 0;
+            for (const filePath of libTasks) {
+              try {
+                const mod = await import(filePath);
+                const composable = mod.default;
+                if (
+                  composable &&
+                  typeof composable === 'object' &&
+                  'process' in composable &&
+                  'handleEvent' in composable
+                ) {
+                  this.registerComposable(composable as DefinedComposable);
+                  libCount++;
+                }
+              } catch (e) {
+                log.warn(
+                  `autoScan: failed to load ${path.basename(filePath)} from ${pkg} - ${e.message}`,
+                );
+              }
+            }
+            if (libCount > 0) {
+              log.info(
+                `Auto-discovered ${libCount} task(s) from library ${pkg}`,
+              );
+            }
+            compiler.loadFlowsFromDirectory(pkgDist);
+          }
+        }
+      }
+    }
+  }
+
+  private findFilesByExtension(directory: string, ext: string): string[] {
+    const results: string[] = [];
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...this.findFilesByExtension(fullPath, ext));
+      } else if (entry.name.endsWith(ext)) {
+        results.push(fullPath);
+      }
+    }
+    return results.sort((a, b) => a.localeCompare(b));
   }
 
   release(route: string) {

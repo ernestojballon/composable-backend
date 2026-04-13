@@ -57,6 +57,12 @@ function getOtherResource(classPath: string): string {
         MAIN_RESOURCES,
     );
   }
+  // dev mode fallback: search the parent directory of the resource path
+  // (e.g. src/config/ when resource.path is src/config/resources or similar)
+  const parentDir = resourcePath.substring(0, resourcePath.lastIndexOf('/'));
+  if (parentDir && parentDir !== resourcePath) {
+    otherResources.push(parentDir);
+  }
   const segments = util.split(resourcePath, '/');
   if (segments.length > 2) {
     const sb = new StringBuilder();
@@ -99,6 +105,13 @@ function getResourceFilePath(filePath: string): string {
         : `${name}.yaml`;
       if (fs.existsSync(alternative)) {
         return alternative;
+      }
+    }
+    // try .flow.yml convention (dev mode — flow files before rename)
+    if (filePath.endsWith('.yml')) {
+      const flowVariant = filePath.replace('.yml', '.flow.yml');
+      if (fs.existsSync(flowVariant)) {
+        return flowVariant;
       }
     }
   }
@@ -149,13 +162,28 @@ export class AppConfig {
   private constructor(resourcePath?: string) {
     if (!AppConfig.reader) {
       if (typeof resourcePath == 'string') {
-        if (!fs.existsSync(resourcePath)) {
-          throw new Error(`Missing resources folder - ${resourcePath}`);
+        let resolvedPath = resourcePath;
+        if (!fs.existsSync(resolvedPath)) {
+          // dev mode fallback: try the parent directory
+          // (e.g. src/config/ when src/config/resources doesn't exist)
+          const parentDir = resolvedPath.substring(
+            0,
+            resolvedPath.lastIndexOf('/'),
+          );
+          if (
+            parentDir &&
+            fs.existsSync(parentDir) &&
+            util.isDirectory(parentDir)
+          ) {
+            resolvedPath = parentDir;
+          } else {
+            throw new Error(`Missing resources folder - ${resourcePath}`);
+          }
         }
-        if (!util.isDirectory(resourcePath)) {
-          throw new Error(`Not a resources folder - ${resourcePath}`);
+        if (!util.isDirectory(resolvedPath)) {
+          throw new Error(`Not a resources folder - ${resolvedPath}`);
         }
-        this.setResourcePath(resourcePath);
+        this.setResourcePath(resolvedPath);
       } else {
         // auto-discover a resources folder relative to cwd
         const candidates = [

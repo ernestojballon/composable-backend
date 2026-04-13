@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { Logger } from '../util/logger.js';
 import { Utility } from '../util/utility.js';
 import { AppConfig, ConfigReader } from '../util/config-reader.js';
@@ -107,6 +109,51 @@ export class CompileFlows {
     }
   }
 
+  public loadFlowsFromDirectory(directory: string): void {
+    if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
+      return;
+    }
+    const flowFiles = this.findFiles(directory, ['.flow.yml']);
+    if (flowFiles.length === 0) {
+      return;
+    }
+    for (const filePath of flowFiles) {
+      const name = path.basename(filePath);
+      if (
+        !Flows.flowExists(
+          name
+            .replace('.flow.yml', '')
+            .replace('.yml', '')
+            .replace('.yaml', ''),
+        )
+      ) {
+        try {
+          this.createFlow(name, new ConfigReader('file:' + filePath));
+        } catch (e) {
+          log.error(`Ignore ${filePath} - ${e.message}`);
+        }
+      }
+    }
+    const flows = Flows.getAllFlows().sort((a, b) => a.localeCompare(b));
+    log.info(
+      `Auto-discovered ${flowFiles.length} flow file(s), total flows deployed: ${flows.length}`,
+    );
+  }
+
+  private findFiles(directory: string, extensions: string[]): string[] {
+    const results: string[] = [];
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...this.findFiles(fullPath, extensions));
+      } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
+        results.push(fullPath);
+      }
+    }
+    return results.sort((a, b) => a.localeCompare(b));
+  }
+
   private loadFlows(flowList: Array<string>, prefix: string) {
     const uniqueFlows = {};
     for (const f of flowList) {
@@ -148,7 +195,8 @@ export class CompileFlows {
       typeof firstTask == 'string'
     ) {
       if (Flows.flowExists(id)) {
-        throw new Error(`Skip ${name} - Flow '${id}' already exists`);
+        log.debug(`Skip ${name} - Flow '${id}' already loaded`);
+        return;
       }
       const topLevelException =
         exceptionTask && typeof exceptionTask == 'string'
