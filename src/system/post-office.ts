@@ -359,7 +359,15 @@ class PO {
           emitter.emit(route, input.toBytes());
         }
       } else {
-        throw new Error(`Route ${route} not found`);
+        const suggestion = util.suggestRoute(
+          route,
+          Array.from(handlers.keys()),
+        );
+        throw new Error(
+          suggestion
+            ? `Route '${route}' not found. Did you mean '${suggestion}'?`
+            : `Route '${route}' not found`,
+        );
       }
     } else {
       log.warn(

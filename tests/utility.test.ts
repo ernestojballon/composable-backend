@@ -528,6 +528,34 @@ describe('Utility', () => {
     });
   });
 
+  describe('suggestRoute', () => {
+    const routes = [
+      'v1.lead.score',
+      'v1.lead.validate',
+      'v1.lead.normalize',
+      'kafka.notification',
+      'demo.health',
+    ];
+
+    it('suggests closest match for a typo', () => {
+      expect(util.suggestRoute('v1.lead.scroe', routes)).toBe('v1.lead.score');
+    });
+
+    it('suggests closest match for a missing segment', () => {
+      expect(util.suggestRoute('v1.lead.valid', routes)).toBe(
+        'v1.lead.validate',
+      );
+    });
+
+    it('returns null when no route is close enough', () => {
+      expect(util.suggestRoute('completely.different', routes)).toBeNull();
+    });
+
+    it('returns null for empty route list', () => {
+      expect(util.suggestRoute('anything', [])).toBeNull();
+    });
+  });
+
   describe('loadYamlFile', () => {
     it('throws for missing file path', () => {
       expect(() => util.loadYamlFile(null)).toThrow('Missing file path');

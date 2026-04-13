@@ -545,4 +545,35 @@ export class Utility {
     }
     return result.reverse();
   }
+
+  suggestRoute(target: string, routes: string[]): string | null {
+    let best: string | null = null;
+    let bestDist = Infinity;
+    const maxDist = Math.max(3, Math.floor(target.length * 0.4));
+    for (const route of routes) {
+      const d = this.levenshtein(target, route);
+      if (d < bestDist && d <= maxDist) {
+        bestDist = d;
+        best = route;
+      }
+    }
+    return best;
+  }
+
+  private levenshtein(a: string, b: string): number {
+    const m = a.length;
+    const n = b.length;
+    const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i);
+    for (let i = 1; i <= m; i++) {
+      let prev = dp[0];
+      dp[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const temp = dp[j];
+        dp[j] =
+          a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+        prev = temp;
+      }
+    }
+    return dp[n];
+  }
 }

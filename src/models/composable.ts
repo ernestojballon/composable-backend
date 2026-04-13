@@ -36,10 +36,11 @@ export type ComposableHandler<TOut = ComposableResult> = (
 export type Visibility = 'private' | 'public';
 
 export interface DefineComposableOptions<
+  TRoute extends string = string,
   TIn = unknown,
   TOut extends ComposableResult = ComposableResult,
 > {
-  process: string;
+  process: TRoute;
   handler: ComposableHandler<TOut>;
   inputSchema?: Validator<TIn>;
   outputSchema?: Validator<TOut>;
@@ -49,10 +50,11 @@ export interface DefineComposableOptions<
 }
 
 export interface DefinedComposable<
+  TRoute extends string = string,
   TIn = unknown,
   TOut extends ComposableResult = ComposableResult,
 > extends Composable {
-  readonly process: string;
+  readonly process: TRoute;
   readonly instances: number;
   readonly visibility: Visibility;
   readonly interceptor: boolean;
@@ -150,9 +152,12 @@ export function preload(
  * avoids an empty initialize() method and works well with optional validators.
  */
 export function defineComposable<
+  TRoute extends string = string,
   TIn = unknown,
   TOut extends ComposableResult = ComposableResult,
->(options: DefineComposableOptions<TIn, TOut>): DefinedComposable<TIn, TOut> {
+>(
+  options: DefineComposableOptions<TRoute, TIn, TOut>,
+): DefinedComposable<TRoute, TIn, TOut> {
   if (!options || typeof options !== 'object') {
     throw new Error('Composable definition must be an object');
   }
@@ -163,7 +168,7 @@ export function defineComposable<
     throw new Error('Composable definition must declare a handler function');
   }
 
-  const composable: DefinedComposable<TIn, TOut> = {
+  const composable: DefinedComposable<TRoute, TIn, TOut> = {
     process: options.process,
     instances: Math.max(1, options.instances ?? 1),
     visibility: options.visibility ?? 'private',

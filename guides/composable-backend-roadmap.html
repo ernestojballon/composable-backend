@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Composable Backend - Improvement Roadmap</title>
+<style>
+  @page { size: landscape; margin: 1.5cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    color: #1a1a2e;
+    background: #fff;
+    padding: 2rem;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    color: #0f0f23;
+  }
+  .subtitle {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  thead th {
+    background: #0f0f23;
+    color: #fff;
+    padding: 0.6rem 0.7rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; width: 2.5rem; text-align: center; }
+  thead th:last-child { border-radius: 0 6px 0 0; }
+  tbody tr { border-bottom: 1px solid #e8e8ee; }
+  tbody tr:nth-child(even) { background: #f7f7fb; }
+  tbody tr:hover { background: #eef0ff; }
+  tbody td { padding: 0.55rem 0.7rem; vertical-align: top; }
+  tbody td:first-child { text-align: center; font-weight: 700; color: #0f0f23; }
+  .name { font-weight: 600; color: #1a1a8e; white-space: nowrap; }
+  .effort, .impact {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .effort-trivial { background: #d4f5d4; color: #1a6b1a; }
+  .effort-low { background: #dbeafe; color: #1e40af; }
+  .effort-medium { background: #fef3c7; color: #92400e; }
+  .impact-high { background: #fee2e2; color: #991b1b; }
+  .impact-medium { background: #fef3c7; color: #92400e; }
+  td.what { max-width: 220px; }
+  td.why { max-width: 320px; }
+  .footer {
+    margin-top: 1.5rem;
+    font-size: 0.72rem;
+    color: #888;
+    border-top: 1px solid #e8e8ee;
+    padding-top: 0.7rem;
+  }
+  @media print {
+    body { padding: 0; }
+    tbody tr:hover { background: inherit; }
+    tbody tr:nth-child(even) { background: #f7f7fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    thead th { background: #0f0f23 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .effort, .impact { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Composable Backend &mdash; Improvement Roadmap</h1>
+<p class="subtitle">Filtered for serverless compatibility. Ordered by effort &rarr; impact ratio.</p>
+
+<table>
+<thead>
+  <tr>
+    <th>#</th>
+    <th>Improvement</th>
+    <th>Effort</th>
+    <th>Impact</th>
+    <th>What it is</th>
+    <th>Why it matters</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>1</td>
+    <td class="name">tsx watch dev mode</td>
+    <td><span class="effort effort-trivial">Trivial</span></td>
+    <td><span class="impact impact-high">High DX</span></td>
+    <td class="what">An npm script (<code>"dev": "tsx watch src/index.ts"</code>) that auto-restarts the app on every file save, no build step needed.</td>
+    <td class="why">Cuts the feedback loop from ~5 seconds to instant. Every modern framework ships this out of the box. Without it, the framework feels dated on first impression.</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td class="name">Typed events (typed-emitter)</td>
+    <td><span class="effort effort-low">Low</span></td>
+    <td><span class="impact impact-high">High Safety</span></td>
+    <td class="what">A TypeScript-only wrapper around the existing EventEmitter that enforces type checking on event names and payloads at compile time. Zero runtime cost.</td>
+    <td class="why">Catches typos like <code>"v1.lead.scroe"</code> at compile time. Prevents an entire class of silent event-routing bugs that are impossible to debug at runtime.</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td class="name">OpenTelemetry integration</td>
+    <td><span class="effort effort-medium">Medium</span></td>
+    <td><span class="impact impact-high">High Ops</span></td>
+    <td class="what">A <code>@composable-backend/otel</code> package that bridges the existing tracer (<code>exec_time</code>, <code>round_trip</code>, trace IDs) to the OpenTelemetry standard.</td>
+    <td class="why">The framework already collects performance metrics but they're stuck in console logs. OTel sends them to Jaeger, Datadog, or Grafana. The difference between &ldquo;we think scoring is slow&rdquo; and a flame graph showing exactly which task is the bottleneck. OTel SDK works natively in Lambda.</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td class="name">Auto-generate OpenAPI</td>
+    <td><span class="effort effort-medium">Medium</span></td>
+    <td><span class="impact impact-high">High API DX</span></td>
+    <td class="what">A build-time tool that reads <code>rest.yaml</code> (URLs, methods, auth, timeout) and composable <code>inputSchema</code>/<code>outputSchema</code> (Zod) to produce an OpenAPI 3.1 spec.</td>
+    <td class="why">Frontend teams currently read YAML config files or ask the backend developer. Auto-generated <code>/docs</code> gives an interactive API explorer, client SDK generation, and contract testing &mdash; all from config that already exists. Pure build-time, no runtime dependency.</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td class="name">create-composable-app CLI</td>
+    <td><span class="effort effort-medium">Medium</span></td>
+    <td><span class="impact impact-high">High Adoption</span></td>
+    <td class="what">A command-line tool (<code>npx create-composable-app my-project</code>) that scaffolds a working project with config files, a sample composable function, and a flow &mdash; ready to run.</td>
+    <td class="why">Today, getting started means cloning the example project and deleting what you don't need. A scaffolding CLI is the first thing new users interact with. Every successful framework (Next.js, Fastify, Hono, NestJS) has one. Without it, adoption depends on people being patient enough to read docs first.</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td class="name">Test harness package</td>
+    <td><span class="effort effort-medium">Medium</span></td>
+    <td><span class="impact impact-high">High DX</span></td>
+    <td class="what">A <code>@composable-backend/testing</code> package with utilities like <code>TestPostOffice</code> (captures sent events), <code>TestPlatform</code> (in-memory registration), and <code>expectEvent()</code> assertions.</td>
+    <td class="why">The framework has excellent testability by design, but developers wire up Platform, AppConfig, and PostOffice manually in every test. The harness reduces 15-line setup to 2 lines. Also enables event spying (&ldquo;was this event sent with these headers?&rdquo;) which is currently impossible without reading logs.</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td class="name">Structured JSON logging</td>
+    <td><span class="effort effort-low">Low</span></td>
+    <td><span class="impact impact-medium">Medium Ops</span></td>
+    <td class="what">Ensure the existing <code>log.format: json</code> compact mode outputs machine-parseable JSON with consistent fields (timestamp, level, service, trace_id).</td>
+    <td class="why">CloudWatch, Datadog Logs, and ELK auto-parse structured JSON. The framework already has a compact format, but log analytics tools need consistent field names to build dashboards and alerts. A small refinement that makes the framework production-observable on day one.</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td class="name">Transactional Outbox pattern</td>
+    <td><span class="effort effort-medium">Medium</span></td>
+    <td><span class="impact impact-high">High Reliability</span></td>
+    <td class="what">When a composable must update state AND publish an event (e.g., save to DB then publish to Kafka), do both in a single DB transaction. Write the event to an &ldquo;outbox&rdquo; table; a relay process publishes it later.</td>
+    <td class="why">The #1 silent failure mode in event-driven systems: a crash between DB write and event publish loses data permanently. Works perfectly in serverless &mdash; the outbox is just a DB table, and the relay can be a scheduled Lambda. Could be <code>outbox: true</code> in kafka-adapter.yaml.</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td class="name">BFF pattern guidance</td>
+    <td><span class="effort effort-low">Low</span></td>
+    <td><span class="impact impact-medium">Medium Arch</span></td>
+    <td class="what">Document how to use composable-backend as a Backend-for-Frontend layer &mdash; a dedicated backend per client type (web, mobile, partner API) that aggregates internal services.</td>
+    <td class="why">The framework already does BFF perfectly: per-client REST endpoints, flow aggregation, per-client auth. Just needs docs showing the pattern. Each BFF deploys as its own Lambda. No new code &mdash; pure documentation win.</td>
+  </tr>
+</tbody>
+</table>
+
+<div class="footer">
+  composable-backend v1.1.0 &bull; Roadmap generated April 2026 &bull; All items are serverless-compatible (no long-running process assumptions)
+</div>
+
+</body>
+</html>
