@@ -574,7 +574,19 @@ class RestEngine {
       server.setTimeout(60000);
       server.on('error', (e) => {
         if ('code' in e && e['code'] == 'EADDRINUSE') {
-          log.error(`Cannot start server because port ${port} is already used`);
+          log.error(
+            `\n` +
+              `  ┌─────────────────────────────────────────────────────┐\n` +
+              `  │  PORT ${port} IS ALREADY IN USE                      │\n` +
+              `  │                                                     │\n` +
+              `  │  Another process is using this port.                │\n` +
+              `  │  Fix: kill the other process or change server.port  │\n` +
+              `  │  in application.yml                                 │\n` +
+              `  │                                                     │\n` +
+              `  │  Find it:  lsof -i :${port}                          │\n` +
+              `  │  Kill it:  kill $(lsof -t -i :${port})               │\n` +
+              `  └─────────────────────────────────────────────────────┘`,
+          );
           platform.stop();
         } else {
           log.error(`Network exception - ${e.message}`);
