@@ -1,11 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { AppConfig } from './util/config-reader.js';
-import { Platform } from './system/platform.js';
 import { RestAutomation } from './system/rest-automation.js';
 import { EventScriptEngine } from './automation/event-script-manager.js';
 import { NoOpComposable } from './services/no-op.js';
 import { DefinedComposable } from './models/composable.js';
+import { createApp } from './app.js';
 
 export interface ComposableOptions {
   /** Server port. Overrides application.yml and .env. */
@@ -119,11 +118,11 @@ export async function composable(options?: ComposableOptions): Promise<void> {
   const taskDir = findTaskScanDir(root);
   const flowDir = findFlowScanDir(root);
 
-  // Initialize config
-  const config = AppConfig.getInstance(configDir);
+  // createApp() initialises AppConfig and Platform (singletons) in a single place
+  const app = createApp(configDir);
+  const config = app.config;
+  const platform = app.platform;
 
-  // Initialize platform
-  const platform = Platform.getInstance();
   platform.registerComposable(NoOpComposable);
 
   // Auto-scan tasks from src/ (dev) or dist/ (prod)

@@ -844,7 +844,10 @@ export class AsyncHttpRequest {
       this.contentLength = parseInt(String(map[CONTENT_LENGTH]));
     }
     if (BODY in map) {
-      this.body = map[BODY];
+      // structuredClone demotes Buffer to Uint8Array; re-wrap to preserve Buffer identity
+      const b = map[BODY];
+      this.body =
+        b instanceof Uint8Array && !(b instanceof Buffer) ? Buffer.from(b) : b;
     }
     if (typeof map[QUERY] == 'string') {
       this.queryString = map[QUERY];

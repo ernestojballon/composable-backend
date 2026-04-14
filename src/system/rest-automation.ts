@@ -15,12 +15,14 @@ import { RoutingEntry, AssignedRoute, HeaderInfo } from '../util/routing.js';
 import { RateLimiter } from '../services/rate-limiter.js';
 import { AppConfig, ConfigReader } from '../util/config-reader.js';
 import { ContentTypeResolver } from '../util/content-type-resolver.js';
-import { Server } from 'http';
-import express, { RequestHandler, Request, Response } from 'express';
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
+import { createServer, Server, IncomingMessage, ServerResponse } from 'http';
+// Keep Express types for the public setupMiddleWare API — the test imports
+// NextFunction / Request / Response from 'express' directly.
+import type { RequestHandler, Request, Response } from 'express';
 import busboy from 'busboy';
 import { Socket } from 'net';
+import fs from 'fs';
+import path from 'path';
 
 const log = Logger.getInstance();
 const util = new Utility();
@@ -52,6 +54,294 @@ let loaded = false;
 let server: Server = null;
 let running = false;
 let self: RestEngine;
+
+// ---------------------------------------------------------------------------
+// Express-compatible adapter types
+//
+// All business logic in this file was written against Express's req/res API.
+// Rather than rewriting every method, we define thin interfaces that mirror
+// the subset of the Express API actually used here and produce adapters from
+// a Node.js IncomingMessage + ServerResponse pair.
+// ---------------------------------------------------------------------------
+
+type HttpBody = string | number | object | boolean | Buffer | Uint8Array;
+
+interface AdaptedRequest {
+  method: string;
+  path: string;
+  headers: Record<string, string | string[] | undefined>;
+  query: Record<string, string>;
+  cookies: Record<string, string>;
+  body: HttpBody;
+  socket: { remoteAddress?: string };
+  header(name: string): string | undefined;
+  pipe(destination: unknown): void;
+  // raw node stream for busboy
+  _nodeReq: IncomingMessage;
+}
+
+interface AdaptedResponse {
+  statusCode: number;
+  status(code: number): AdaptedResponse;
+  setHeader(key: string, value: string | number | readonly string[]): void;
+  write(chunk: Buffer | string): void;
+  end(): void;
+  json(data: unknown): void;
+  // raw node stream
+  _nodeRes: ServerResponse;
+}
+
+function parseQueryString(rawQuery: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!rawQuery) return result;
+  // Use URLSearchParams so that encoded characters are decoded correctly
+  const params = new URLSearchParams(rawQuery);
+  for (const [k, v] of params.entries()) {
+    result[k] = v;
+  }
+  return result;
+}
+
+function parseCookies(
+  cookieHeader: string | undefined,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!cookieHeader) return result;
+  for (const part of cookieHeader.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx > 0) {
+      const k = part.substring(0, idx).trim();
+      const v = part.substring(idx + 1).trim();
+      result[k] = v;
+    }
+  }
+  return result;
+}
+
+/**
+ * Determine the MIME type for a file extension (minimal set matching Express/serve-static).
+ */
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.pdf': 'application/pdf',
+  '.zip': 'application/zip',
+  '.gz': 'application/gzip',
+};
+
+function getMimeType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_TYPES[ext] ?? APPLICATION_OCTET_STREAM;
+}
+
+/**
+ * Attempt to serve a static file.  Returns true if served, false if not found.
+ * Mirrors Express's static middleware: directory requests serve index.html.
+ */
+async function serveStaticFile(
+  htmlFolder: string,
+  urlPath: string,
+  res: ServerResponse,
+): Promise<boolean> {
+  // Sanitize path — strip leading slash and resolve against htmlFolder
+  const safe = urlPath.replace(/\.\.\//g, '').replace(/\.\.\\/g, '');
+  let candidate = path.join(htmlFolder, safe);
+
+  try {
+    const stat = await fs.promises.stat(candidate);
+    if (stat.isDirectory()) {
+      candidate = path.join(candidate, 'index.html');
+      await fs.promises.stat(candidate); // throws if missing
+    }
+  } catch {
+    return false;
+  }
+
+  const mimeType = getMimeType(candidate);
+  const data = await fs.promises.readFile(candidate);
+  res.statusCode = 200;
+  res.setHeader(CONTENT_TYPE, mimeType);
+  res.setHeader(CONTENT_LENGTH, data.length);
+  res.end(data);
+  return true;
+}
+
+/**
+ * Read the full body from a Node.js IncomingMessage and parse it according
+ * to the Content-Type header.  Returns the parsed body (string, object, or Buffer).
+ */
+async function parseBody(nodeReq: IncomingMessage): Promise<HttpBody> {
+  const contentType = (nodeReq.headers['content-type'] as string) ?? '';
+  const method = nodeReq.method?.toUpperCase() ?? '';
+
+  // Only parse body for methods that carry one
+  if (!['POST', 'PUT', 'PATCH'].includes(method)) {
+    return undefined;
+  }
+
+  // Skip multipart — busboy handles it directly off the raw stream
+  if (contentType.startsWith(MULTIPART_FORM_DATA)) {
+    return undefined;
+  }
+
+  const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2 MB
+  const chunks: Buffer[] = [];
+  let totalSize = 0;
+  await new Promise<void>((resolve, reject) => {
+    nodeReq.on('data', (chunk: Buffer) => {
+      totalSize += chunk.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        nodeReq.destroy();
+        reject(new Error('Request body exceeds 2 MB limit'));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    nodeReq.on('end', resolve);
+    nodeReq.on('error', reject);
+  });
+  const raw = Buffer.concat(chunks);
+
+  if (contentType.startsWith(APPLICATION_URL_ENCODED)) {
+    const params = new URLSearchParams(raw.toString());
+    const result: Record<string, string> = {};
+    for (const [k, v] of params.entries()) {
+      result[k] = v;
+    }
+    return result;
+  }
+
+  if (contentType.startsWith(APPLICATION_JSON)) {
+    try {
+      return JSON.parse(raw.toString());
+    } catch {
+      return raw.toString();
+    }
+  }
+
+  if (
+    contentType.startsWith(APPLICATION_XML) ||
+    contentType.startsWith(TEXT_PREFIX)
+  ) {
+    return raw.toString();
+  }
+
+  // Everything else (including application/octet-stream) → Buffer
+  return raw;
+}
+
+/**
+ * Wrap a Node.js IncomingMessage + ServerResponse into Express-compatible
+ * adapters so all business logic below can remain unchanged.
+ */
+async function adaptNodeRequest(
+  nodeReq: IncomingMessage,
+  nodeRes: ServerResponse,
+): Promise<{ req: AdaptedRequest; res: AdaptedResponse }> {
+  const parsedUrl = new URL(
+    nodeReq.url ?? '/',
+    `http://${nodeReq.headers.host ?? 'localhost'}`,
+  );
+
+  const query = parseQueryString(parsedUrl.search.substring(1));
+  const cookies = parseCookies(nodeReq.headers.cookie as string | undefined);
+
+  // Only consume the body once — multipart is intentionally skipped
+  const body = await parseBody(nodeReq);
+
+  // Normalise headers to a simple string record (first value wins for arrays)
+  const headers: Record<string, string | string[] | undefined> = {};
+  for (const [k, v] of Object.entries(nodeReq.headers)) {
+    headers[k.toLowerCase()] = v;
+  }
+
+  const req: AdaptedRequest = {
+    method: nodeReq.method?.toUpperCase() ?? 'GET',
+    path: parsedUrl.pathname,
+    headers,
+    query,
+    cookies,
+    body,
+    socket: { remoteAddress: nodeReq.socket?.remoteAddress },
+    header(name: string): string | undefined {
+      const val = headers[name.toLowerCase()];
+      return Array.isArray(val) ? val[0] : val;
+    },
+    pipe(destination: unknown) {
+      // For busboy — pipe the raw node stream
+      nodeReq.pipe(destination as NodeJS.WritableStream);
+    },
+    _nodeReq: nodeReq,
+  };
+
+  const setHeaders: Record<string, string | number | readonly string[]> = {};
+  let statusCode = 200;
+  let ended = false;
+
+  const res: AdaptedResponse = {
+    get statusCode() {
+      return statusCode;
+    },
+    set statusCode(v: number) {
+      statusCode = v;
+      nodeRes.statusCode = v;
+    },
+    status(code: number) {
+      statusCode = code;
+      nodeRes.statusCode = code;
+      return res;
+    },
+    setHeader(key: string, value: string | number | readonly string[]) {
+      // Strip \r\n to prevent header injection
+      const safeKey = String(key).replace(/[\r\n]/g, '');
+      const safeValue =
+        typeof value === 'string' ? value.replace(/[\r\n]/g, '') : value;
+      setHeaders[safeKey] = safeValue;
+      nodeRes.setHeader(safeKey, safeValue as string | number | string[]);
+    },
+    write(chunk: Buffer | string) {
+      nodeRes.write(chunk);
+    },
+    end() {
+      if (!ended) {
+        ended = true;
+        nodeRes.end();
+      }
+    },
+    json(data: unknown) {
+      const body = JSON.stringify(data);
+      nodeRes.setHeader(CONTENT_TYPE, APPLICATION_JSON);
+      nodeRes.setHeader(CONTENT_LENGTH, Buffer.byteLength(body));
+      nodeRes.statusCode = statusCode;
+      nodeRes.end(body);
+      ended = true;
+    },
+    _nodeRes: nodeRes,
+  };
+
+  return { req, res };
+}
+
+// ---------------------------------------------------------------------------
+// Helper functions (unchanged from original — still use AdaptedRequest/Response
+// which implement the same interface subset Express used)
+// ---------------------------------------------------------------------------
 
 function keepSomeHeaders(headerInfo: HeaderInfo, headers: object): object {
   const result = {};
@@ -141,7 +431,7 @@ function setupResponseHeaders(
   }
 }
 
-function setupResponseContentType(req: Request, md: ResponseMetadata) {
+function setupResponseContentType(req: AdaptedRequest, md: ResponseMetadata) {
   if (md.resContentType == null) {
     const accept = req.header('accept');
     if (accept) {
@@ -167,7 +457,7 @@ function setupResponseContentType(req: Request, md: ResponseMetadata) {
   }
 }
 
-function setupResponseCookies(res: Response, md: ResponseMetadata) {
+function setupResponseCookies(res: AdaptedResponse, md: ResponseMetadata) {
   for (const h in md.resHeaders) {
     if (h == 'set-cookie') {
       const cookieList = String(md.resHeaders[h])
@@ -183,8 +473,8 @@ function setupResponseCookies(res: Response, md: ResponseMetadata) {
 }
 
 function writeHttpPayload(
-  res: Response,
-  resBody,
+  res: AdaptedResponse,
+  resBody: unknown,
   serviceResponse: EventEnvelope,
   md: ResponseMetadata,
 ) {
@@ -206,7 +496,7 @@ function writeHttpPayload(
 }
 
 async function writeHttpStream(
-  res: Response,
+  res: AdaptedResponse,
   route: AssignedRoute,
   serviceResponse: EventEnvelope,
   md: ResponseMetadata,
@@ -236,7 +526,7 @@ async function writeHttpStream(
   }
 }
 
-function writeHttpData(block, res: Response) {
+function writeHttpData(block: unknown, res: AdaptedResponse) {
   if (block instanceof Buffer) {
     res.write(block);
   } else if (typeof block == 'string') {
@@ -259,8 +549,8 @@ class RelayParameters {
   tracePath: string;
   traceHeaderLabel: string;
   httpReq: AsyncHttpRequest;
-  req: Request;
-  res: Response;
+  req: AdaptedRequest;
+  res: AdaptedResponse;
   route: AssignedRoute;
   router: RoutingEntry;
 }
@@ -332,7 +622,7 @@ export class RestAutomation {
   }
 
   /**
-   * Optional: Setup additional Express middleware
+   * Optional: Setup additional Express-compatible middleware
    *
    * IMPORTANT: This API is provided for backward compatibility with existing code
    * that uses Express plugins. In a composable application, you can achieve the same
@@ -382,8 +672,8 @@ class AsyncHttpResponse implements Composable {
     const cid = serviceResponse.getCorrelationId();
     const context = cid ? httpContext[cid] : null;
     if (context) {
-      const req = context['req'] as Request;
-      const res = context['res'] as Response;
+      const req = context['req'] as AdaptedRequest;
+      const res = context['res'] as AdaptedResponse;
       const httpReq = context['http'] as AsyncHttpRequest;
       const route = context['route'] as AssignedRoute;
       const router = context['router'] as RoutingEntry;
@@ -396,7 +686,7 @@ class AsyncHttpResponse implements Composable {
       const httpHead = 'HEAD' == httpReq.getMethod();
       let resBody = serviceResponse.getBody();
       const md = new ResponseMetadata();
-      // follow this sequence - hedaers, content-type and cookies
+      // follow this sequence - headers, content-type and cookies
       setupResponseHeaders(
         route,
         router,
@@ -501,75 +791,59 @@ class RestEngine {
         );
         port = DEFAULT_SERVER_PORT;
       }
-      const urlEncodedParser = bodyParser.urlencoded({ extended: false });
-      const jsonParser = bodyParser.json();
-      const textParser = bodyParser.text({
-        type(req) {
-          const contentType = req.headers['content-type'];
-          if (contentType) {
-            // accept XML or "text/*" as text content
-            return (
-              contentType.startsWith(APPLICATION_XML) ||
-              contentType.startsWith(TEXT_PREFIX)
-            );
-          } else {
-            return false;
+
+      const htmlFolder = this.htmlFolder;
+      const plugins = this.plugins;
+
+      // Pure Node.js HTTP server — no Express, no Hono app layer.
+      // All request handling flows through our own adapter + RoutingEntry logic.
+      server = createServer(
+        async (nodeReq: IncomingMessage, nodeRes: ServerResponse) => {
+          try {
+            // Run Express-style plugins first (they call next() to continue)
+            if (plugins.length > 0) {
+              await runPlugins(plugins, nodeReq, nodeRes);
+            }
+
+            // Build the adapters (consumes body for non-multipart requests)
+            const { req, res } = await adaptNodeRequest(nodeReq, nodeRes);
+
+            // Serve static files before hitting the REST router
+            if (htmlFolder) {
+              const served = await serveStaticFile(
+                htmlFolder,
+                req.path,
+                nodeRes,
+              );
+              if (served) return;
+            }
+
+            await self.setupRestHandler(req, res, router, restEnabled);
+          } catch (e) {
+            // Last-resort error handler — build a minimal response if nodeRes is still writable
+            if (!nodeRes.headersSent) {
+              const rc = e instanceof AppException ? e.getStatus() : 500;
+              const body = JSON.stringify({
+                type: 'error',
+                status: rc,
+                message: e.message,
+              });
+              nodeRes.statusCode = rc;
+              nodeRes.setHeader(CONTENT_TYPE, APPLICATION_JSON);
+              nodeRes.setHeader(CONTENT_LENGTH, Buffer.byteLength(body));
+              nodeRes.end(body);
+            }
           }
         },
-      });
-      // all content types except multipart upload will be rendered as a byte array
-      const binaryParser = bodyParser.raw({
-        type(req) {
-          const contentType = req.headers['content-type'];
-          if (contentType?.startsWith(MULTIPART_FORM_DATA)) {
-            // skip "multipart/form-data" because it will be handled by another module
-            return false;
-          } else {
-            return true;
-          }
-        },
-        limit: '2mb',
-      });
-      const app = express();
-      app.use(cookieParser());
-      app.use(urlEncodedParser);
-      app.use(jsonParser);
-      app.use(textParser);
-      // binaryParser must be the last parser to catch all other content types
-      app.use(binaryParser);
-      // load static file handler only if explicitly configured
-      if (this.htmlFolder) {
-        app.use(express.static(this.htmlFolder));
-      }
-      // User provided middleware must call the "next()" as the last statement
-      // to release control to the rest-automation engine
-      let pluginCount = 0;
-      for (const handler of this.plugins) {
-        app.use(handler);
-        pluginCount++;
-      }
-      if (pluginCount > 0) {
-        log.info(`Loaded ${pluginCount} additional middleware`);
-      }
-      // the last middleware is the rest-automation request handler
-      app.use(async (req: Request, res: Response) => {
-        try {
-          await this.setupRestHandler(req, res, router, restEnabled);
-        } catch (e) {
-          const rc = e instanceof AppException ? e.getStatus() : 500;
-          this.rejectRequest(res, rc, e.message);
-        }
-      });
-      // for security reason, hide server identification
-      app.disable('x-powered-by');
-      // start HTTP server
-      server = app.listen(port, '0.0.0.0', () => {
+      );
+
+      server.listen(port, '0.0.0.0', () => {
         running = true;
-        // yield so that this is printed after all other processes are done
         setImmediate(() => {
           ready(port);
         });
       });
+
       // set server side socket timeout
       server.setTimeout(60000);
       server.on('error', (e) => {
@@ -640,8 +914,8 @@ class RestEngine {
   }
 
   private async setupRestHandler(
-    req: Request,
-    res: Response,
+    req: AdaptedRequest,
+    res: AdaptedResponse,
     router: RoutingEntry,
     restEnabled: boolean,
   ) {
@@ -674,8 +948,8 @@ class RestEngine {
 
   private async processRestRequest(
     uriPath: string,
-    req: Request,
-    res: Response,
+    req: AdaptedRequest,
+    res: AdaptedResponse,
     assigned: AssignedRoute,
     router: RoutingEntry,
   ) {
@@ -694,7 +968,7 @@ class RestEngine {
   private handleHttpOptions(
     route: AssignedRoute,
     router: RoutingEntry,
-    res: Response,
+    res: AdaptedResponse,
   ) {
     if (route.info.corsId == null) {
       throw new AppException(405, 'Method not allowed');
@@ -719,7 +993,7 @@ class RestEngine {
   private setCorsHeaders(
     route: AssignedRoute,
     router: RoutingEntry,
-    res: Response,
+    res: AdaptedResponse,
   ) {
     const corsInfo = router.getCorsInfo(route.info.corsId);
     if (corsInfo != null && corsInfo.headers.size > 0) {
@@ -732,7 +1006,10 @@ class RestEngine {
     }
   }
 
-  private validateAuthService(route: AssignedRoute, req: Request): string {
+  private validateAuthService(
+    route: AssignedRoute,
+    req: AdaptedRequest,
+  ): string {
     let authService: string = null;
     const authHeaders = route.info.authHeaders;
     if (authHeaders.length > 0) {
@@ -756,13 +1033,13 @@ class RestEngine {
   }
 
   private handleUpload(
-    req: Request,
-    res: Response,
+    req: AdaptedRequest,
+    res: AdaptedResponse,
     route: AssignedRoute,
     httpReq: AsyncHttpRequest,
     parameters: RelayParameters,
   ) {
-    const bb = busboy({ headers: req.headers });
+    const bb = busboy({ headers: req._nodeReq.headers });
     let len = 0;
     bb.on('file', (name, file, info) => {
       const stream = new ObjectStreamIO(route.info.timeoutSeconds);
@@ -794,10 +1071,10 @@ class RestEngine {
       this.rejectRequest(res, 500, 'Unexpected upload exception');
       log.error(`Unexpected upload exception`);
     });
-    req.pipe(bb);
+    req._nodeReq.pipe(bb);
   }
 
-  private parseQuery(req: Request, httpReq: AsyncHttpRequest): string {
+  private parseQuery(req: AdaptedRequest, httpReq: AsyncHttpRequest): string {
     let qs = '';
     for (const k in req.query) {
       const v = req.query[k];
@@ -814,7 +1091,7 @@ class RestEngine {
 
   private prepareHttpRequest(
     uriPath: string,
-    req: Request,
+    req: AdaptedRequest,
     route: AssignedRoute,
     router: RoutingEntry,
   ): AsyncHttpRequest {
@@ -868,8 +1145,8 @@ class RestEngine {
   }
 
   private handleRequestPayload(
-    req: Request,
-    res: Response,
+    req: AdaptedRequest,
+    res: AdaptedResponse,
     route: AssignedRoute,
     httpReq: AsyncHttpRequest,
     parameters: RelayParameters,
@@ -885,8 +1162,8 @@ class RestEngine {
       this.handleUpload(req, res, route, httpReq, parameters);
       return true;
     } else if (contentType.startsWith(APPLICATION_URL_ENCODED)) {
-      for (const k in req.body) {
-        httpReq.setQueryParameter(k, req.body[k]);
+      for (const k in req.body as object) {
+        httpReq.setQueryParameter(k, (req.body as Record<string, string>)[k]);
       }
     } else if (req.body) {
       httpReq.setBody(req.body);
@@ -896,8 +1173,8 @@ class RestEngine {
 
   private async processRequest(
     uriPath: string,
-    req: Request,
-    res: Response,
+    req: AdaptedRequest,
+    res: AdaptedResponse,
     route: AssignedRoute,
     router: RoutingEntry,
   ) {
@@ -933,7 +1210,6 @@ class RestEngine {
     const authService: string = route.info.defaultAuthService
       ? this.validateAuthService(route, req)
       : null;
-    // prepareHttpRequest(uriPath: string, req: Request, route: AssignedRoute, router: RoutingEntry
     const httpReq = this.prepareHttpRequest(uriPath, req, route, router);
     // Distributed tracing required?
     let traceId: string = null;
@@ -1087,7 +1363,7 @@ class RestEngine {
     return result;
   }
 
-  getTraceId(req: Request): Array<string> {
+  getTraceId(req: AdaptedRequest): Array<string> {
     const result = new Array<string>();
     for (const label of this.traceIdLabels) {
       const id = req.header(label);
@@ -1103,10 +1379,9 @@ class RestEngine {
     return result;
   }
 
-  rejectRequest(res: Response, rc: number, message: string): void {
+  rejectRequest(res: AdaptedResponse, rc: number, message: string): void {
     const result = { type: 'error', status: rc, message: message };
     res.status(rc).json(result);
-    res.end();
   }
 
   close(): Promise<boolean> {
@@ -1133,4 +1408,40 @@ class RestEngine {
       }
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Plugin runner — executes Express-style middleware (req, res, next) on the
+// raw Node.js IncomingMessage / ServerResponse pair.
+// ---------------------------------------------------------------------------
+
+function runPlugins(
+  plugins: RequestHandler[],
+  nodeReq: IncomingMessage,
+  nodeRes: ServerResponse,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let index = 0;
+    // Cast to Express types — the actual objects are IncomingMessage/ServerResponse
+    // which implement the same interface subset the plugins use.
+    const req = nodeReq as unknown as Request;
+    const res = nodeRes as unknown as Response;
+    function next(err?: unknown) {
+      if (err) {
+        reject(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
+      if (index >= plugins.length) {
+        resolve();
+        return;
+      }
+      const plugin = plugins[index++];
+      try {
+        plugin(req, res, next);
+      } catch (e) {
+        reject(e);
+      }
+    }
+    next();
+  });
 }

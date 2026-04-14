@@ -510,7 +510,11 @@ class ServiceManager {
             });
           }
         }
-      } else if (payload instanceof Buffer) {
+      } else if (
+        payload instanceof Buffer ||
+        (payload !== null && typeof payload === 'object')
+      ) {
+        // Buffer: binary deserialization (network/legacy); plain object: in-process map payload
         const event = new EventEnvelope(payload);
         const worker = this.workers.shift();
         if (worker) {

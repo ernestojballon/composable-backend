@@ -59,6 +59,9 @@ function loadBuffer(reqBody): Buffer {
   let b: Buffer;
   if (reqBody instanceof Buffer) {
     b = reqBody;
+  } else if (reqBody instanceof Uint8Array) {
+    // structuredClone demotes Buffer to Uint8Array; restore as Buffer
+    b = Buffer.from(reqBody);
   } else if (typeof reqBody == 'string') {
     b = Buffer.from(reqBody);
   } else if (reqBody instanceof Object) {

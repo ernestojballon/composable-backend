@@ -585,6 +585,9 @@ export class EventEnvelope {
       result['trace_path'] = String(this.tracePath);
     }
     result['status'] = this.getStatus();
+    if (this.stackTrace) {
+      result['stack_trace'] = this.stackTrace;
+    }
     if (this.execTime) {
       result['exec_time'] = Math.max(0, util.getFloat(this.execTime, 3));
     }
@@ -619,8 +622,12 @@ export class EventEnvelope {
     }
     if ('body' in map) {
       // "body" can be one of (string | number | object | boolean | Buffer | Uint8Array).
-      // Casting to object for compilation only. It is irrelevant at run-time.
-      this.body = map['body'] as object;
+      // structuredClone demotes Buffer to Uint8Array, so re-wrap to preserve Buffer identity.
+      const b = map['body'];
+      this.body =
+        b instanceof Uint8Array && !(b instanceof Buffer)
+          ? Buffer.from(b)
+          : (b as object);
     }
     if (typeof map['reply_to'] == 'string') {
       this.replyTo = map['reply_to'];
@@ -647,6 +654,9 @@ export class EventEnvelope {
     }
     if (typeof map['status'] == 'number') {
       this.status = parseInt(String(map['status']));
+    }
+    if (typeof map['stack_trace'] == 'string') {
+      this.stackTrace = map['stack_trace'];
     }
     if (typeof map['exec_time'] == 'number') {
       this.execTime = Math.max(

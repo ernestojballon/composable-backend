@@ -178,6 +178,12 @@ export class CompileFlows {
 
   private createFlow(name: string, flow: ConfigReader): void {
     log.info(`Parsing ${name}`);
+    // Detect v2 syntax: flow value is a plain string (the flow ID)
+    const flowValue = flow.get('flow');
+    if (typeof flowValue == 'string') {
+      this.createFlowV2(name, flow, flowValue);
+      return;
+    }
     const id = flow.get('flow.id');
     const description = flow.get('flow.description');
     const timeToLive = flow.get('flow.ttl');
@@ -225,6 +231,185 @@ export class CompileFlows {
         `Unable to parse ${name} - check flow.id, flow.description, flow.ttl, first.task`,
       );
     }
+  }
+
+  /**
+   * Parse v2 flow syntax where `flow` is a plain string (the flow ID).
+   *
+   * V2 rules:
+   * - `flow: name` (string) is the flow ID
+   * - `ttl` and `exception` are top-level keys (no nesting under `flow:`)
+   * - `first.task` is implicit — the first task in the list
+   * - `execution: sequential` is the default (omitted)
+   * - `execution: end` is implicit for the last task
+   * - `next` defaults to the next task in list order
+   * - `- taskName: { ... }` syntax: each list element is a single-key object
+   * - `respond: true` is shorthand for adding `result -> output.body` to output
+   * - `input` is an object map (key: source) instead of an array of strings
+   * - `description` is optional
+   */
+  private createFlowV2(name: string, flow: ConfigReader, flowId: string): void {
+    if (Flows.flowExists(flowId)) {
+      log.debug(`Skip ${name} - Flow '${flowId}' already loaded`);
+      return;
+    }
+    const timeToLive = flow.get('ttl');
+    if (typeof timeToLive != 'string') {
+      log.error(`Unable to parse ${name} - missing 'ttl'`);
+      return;
+    }
+    const exceptionTask = flow.get(EXCEPTION);
+    const ext = flow.get('external.state.machine');
+    const topLevelException =
+      exceptionTask && typeof exceptionTask == 'string' ? exceptionTask : null;
+    const ttlSeconds = Math.max(1, util.getDurationInSeconds(timeToLive));
+    const extState = ext && typeof ext == 'string' ? ext : null;
+
+    // Extract the raw tasks array from the parsed YAML map
+    const rawMap = flow.getMap() as Record<string, unknown>;
+    const rawTasks = rawMap[TASKS];
+    if (!Array.isArray(rawTasks) || rawTasks.length == 0) {
+      throw new Error(
+        `Unable to parse ${name} - 'tasks' section is empty or invalid`,
+      );
+    }
+
+    // Resolve task names from the v2 `- taskName: { ... }` structure
+    const taskNames: string[] = [];
+    for (let i = 0; i < rawTasks.length; i++) {
+      const taskEntry = rawTasks[i];
+      if (!taskEntry || taskEntry.constructor !== Object) {
+        throw new Error(
+          `Unable to parse ${name} task ${i} - each task must be an object`,
+        );
+      }
+      const keys = Object.keys(taskEntry);
+      if (keys.length !== 1) {
+        throw new Error(
+          `Unable to parse ${name} task ${i} - each task entry must have exactly one key (the task name)`,
+        );
+      }
+      taskNames.push(keys[0]);
+    }
+
+    const firstTask = taskNames[0];
+    const entry: Flow = new Flow(
+      flowId,
+      firstTask,
+      extState,
+      ttlSeconds * 1000,
+      topLevelException,
+    );
+
+    let endTaskCount = 0;
+    for (let i = 0; i < rawTasks.length; i++) {
+      const taskName = taskNames[i];
+      const taskDef = (rawTasks[i] as Record<string, unknown>)[taskName];
+      if (!taskDef || (taskDef as object).constructor !== Object) {
+        log.error(
+          `Unable to parse ${name} task ${i} (${taskName}) - task body must be an object`,
+        );
+        continue;
+      }
+      const def = taskDef as Record<string, unknown>;
+
+      // process defaults to task name when omitted
+      const processRoute =
+        typeof def[PROCESS] == 'string' ? (def[PROCESS] as string) : taskName;
+
+      // execution: last task is 'end', all others are 'sequential' by default
+      const isLastTask = i === rawTasks.length - 1;
+      const execution = isLastTask ? END : SEQUENTIAL;
+
+      if (isLastTask) {
+        endTaskCount++;
+      }
+
+      this.validateTaskName(taskName, processRoute, name);
+      const task = new Task(taskName, processRoute, execution);
+
+      // delay (optional)
+      const delay = def[DELAY];
+      if (typeof delay == 'string' || typeof delay == 'number') {
+        this.setDelay(entry, task, String(delay), taskName, name);
+      }
+
+      // task-level exception handler (optional)
+      const taskException = def[EXCEPTION];
+      if (typeof taskException == 'string') {
+        task.setExceptionTask(taskException);
+      }
+
+      // next: implicit from task order; sequential tasks need a next pointer
+      if (!isLastTask) {
+        task.nextSteps.push(taskNames[i + 1]);
+      }
+
+      // input: v2 uses an object map { destKey: sourceExpr }
+      // Convert to v1 array format: 'sourceExpr -> destKey'
+      const rawInput = def[INPUT];
+      if (rawInput != null) {
+        if (rawInput.constructor === Object) {
+          const inputMap = rawInput as Record<string, string>;
+          for (const [destKey, sourceExpr] of Object.entries(inputMap)) {
+            const line = `${sourceExpr} -> ${destKey}`;
+            if (this.validInput(line)) {
+              task.input.push(line);
+            } else {
+              log.error(
+                `Skip invalid task ${taskName} in ${name} - invalid input mapping: ${line}`,
+              );
+            }
+          }
+        } else if (Array.isArray(rawInput)) {
+          // v2 also allows v1-style array input for advanced use
+          for (const item of rawInput as string[]) {
+            const filtered = this.filterDataMapping([String(item)]);
+            for (const line of filtered) {
+              if (this.validInput(line)) {
+                task.input.push(line);
+              } else {
+                log.error(
+                  `Skip invalid task ${taskName} in ${name} - invalid input mapping: ${line}`,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // output: v2 uses an array (same as v1), plus respond shorthand
+      const rawOutput = def[OUTPUT];
+      const outputLines: string[] = [];
+      if (Array.isArray(rawOutput)) {
+        for (const item of rawOutput as string[]) {
+          outputLines.push(String(item));
+        }
+      }
+      const respond = def['respond'];
+      if (respond === true) {
+        outputLines.push('result -> output.body');
+      }
+      const filtered = this.filterDataMapping(outputLines);
+      for (const line of filtered) {
+        if (this.validOutput(line, false)) {
+          task.output.push(line);
+        } else {
+          log.error(
+            `Skip invalid task ${taskName} in ${name} - invalid output mapping: ${line}`,
+          );
+        }
+      }
+
+      entry.addTask(task);
+    }
+
+    if (endTaskCount == 0) {
+      throw new Error(
+        `Unable to parse ${name} - flow must have at least one end task`,
+      );
+    }
+    this.addFlow(entry, name);
   }
 
   private parseTaskList(

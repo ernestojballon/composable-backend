@@ -29,13 +29,29 @@ export type ComposableResult =
   | EventEnvelope
   | null;
 
+/**
+ * v1 handler: receives the raw EventEnvelope.
+ * Used when no `input` schema is provided (backward-compatible default).
+ */
 export type ComposableHandler<TOut = ComposableResult> = (
   evt: EventEnvelope,
 ) => Promise<TOut> | TOut;
 
+/**
+ * v2 typed handler: receives the validated, parsed input directly.
+ * Used when an `input` schema is provided via defineComposable options.
+ */
+export type TypedComposableHandler<TIn, TOut = ComposableResult> = (
+  input: TIn,
+) => Promise<TOut> | TOut;
+
 export type Visibility = 'private' | 'public';
 
-export interface DefineComposableOptions<
+/**
+ * v1-style options: handler receives EventEnvelope.
+ * Input/output validation happens via the platform runtime (body is mutated on the envelope).
+ */
+export interface DefineComposableOptionsV1<
   TRoute extends string = string,
   TIn = unknown,
   TOut extends ComposableResult = ComposableResult,
@@ -49,6 +65,35 @@ export interface DefineComposableOptions<
   interceptor?: boolean;
 }
 
+/**
+ * v2-style options: `input` schema is required; handler receives the parsed input directly.
+ * `output` is an alias for `outputSchema`.
+ */
+export interface DefineComposableOptionsV2<
+  TRoute extends string = string,
+  TIn = unknown,
+  TOut extends ComposableResult = ComposableResult,
+> {
+  process: TRoute;
+  handler: TypedComposableHandler<TIn, TOut>;
+  input: Validator<TIn>;
+  output?: Validator<TOut>;
+  instances?: number;
+  visibility?: Visibility;
+  interceptor?: boolean;
+}
+
+/**
+ * Union of v1 and v2 options accepted by defineComposable.
+ */
+export type DefineComposableOptions<
+  TRoute extends string = string,
+  TIn = unknown,
+  TOut extends ComposableResult = ComposableResult,
+> =
+  | DefineComposableOptionsV1<TRoute, TIn, TOut>
+  | DefineComposableOptionsV2<TRoute, TIn, TOut>;
+
 export interface DefinedComposable<
   TRoute extends string = string,
   TIn = unknown,
@@ -60,6 +105,15 @@ export interface DefinedComposable<
   readonly interceptor: boolean;
   inputSchema?: Validator<TIn>;
   outputSchema?: Validator<TOut>;
+  /**
+   * When true, the handler expects the parsed input directly (v2 typed handler style).
+   * The platform runtime will extract and parse the event body before invoking handleEvent,
+   * and handleEvent will call the user's handler with the parsed value rather than the
+   * full EventEnvelope.
+   *
+   * When false or absent, the handler receives the EventEnvelope (v1 backward-compatible style).
+   */
+  readonly _typedHandler?: boolean;
   handleEvent(evt: EventEnvelope): Promise<TOut>;
 }
 
@@ -146,7 +200,27 @@ export function preload(
 }
 
 /**
+ * Type guard: returns true when the options use the v2 typed-handler style
+ * (i.e. an `input` schema is present instead of the legacy `inputSchema`).
+ */
+function isV2Options<TRoute extends string, TIn, TOut extends ComposableResult>(
+  options: DefineComposableOptions<TRoute, TIn, TOut>,
+): options is DefineComposableOptionsV2<TRoute, TIn, TOut> {
+  return 'input' in options && options.input != null;
+}
+
+/**
  * Functional authoring helper for a composable task definition.
+ *
+ * Supports two authoring styles:
+ *
+ * **v1 (backward-compatible):** handler receives an EventEnvelope.
+ *   Optionally supply `inputSchema`/`outputSchema` for runtime validation;
+ *   the validated body is set back on the envelope before the handler runs.
+ *
+ * **v2 (typed):** supply an `input` schema and the handler receives the
+ *   parsed, typed value directly — no EventEnvelope casting required.
+ *   Optionally supply `output` as an alias for output schema validation.
  *
  * This is equivalent to implementing the Composable interface directly, but it
  * avoids an empty initialize() method and works well with optional validators.
@@ -168,6 +242,36 @@ export function defineComposable<
     throw new Error('Composable definition must declare a handler function');
   }
 
+  if (isV2Options(options)) {
+    // v2 typed-handler path: handler receives parsed input, not EventEnvelope.
+    // The platform runtime sees inputSchema on the composable and performs validation
+    // before calling handleEvent. handleEvent then invokes the user handler with the
+    // already-parsed body rather than the full envelope.
+    const typedHandler = options.handler as TypedComposableHandler<TIn, TOut>;
+    const composable: DefinedComposable<TRoute, TIn, TOut> = {
+      process: options.process,
+      instances: Math.max(1, options.instances ?? 1),
+      visibility: options.visibility ?? 'private',
+      interceptor: options.interceptor ?? false,
+      _typedHandler: true,
+      inputSchema: options.input,
+      initialize(): Composable {
+        return this;
+      },
+      async handleEvent(evt: EventEnvelope): Promise<TOut> {
+        // At this point the platform runtime has already validated and set the
+        // parsed body on the envelope via inputSchema.parse(). We extract it and
+        // pass it directly to the typed handler.
+        return await typedHandler(evt.getBody() as TIn);
+      },
+    };
+    if (options.output) {
+      composable.outputSchema = options.output;
+    }
+    return composable;
+  }
+
+  // v1 backward-compatible path: handler receives the full EventEnvelope.
   const composable: DefinedComposable<TRoute, TIn, TOut> = {
     process: options.process,
     instances: Math.max(1, options.instances ?? 1),
@@ -177,7 +281,9 @@ export function defineComposable<
       return this;
     },
     async handleEvent(evt: EventEnvelope): Promise<TOut> {
-      return await options.handler(evt);
+      return await (
+        options as DefineComposableOptionsV1<TRoute, TIn, TOut>
+      ).handler(evt);
     },
   };
 

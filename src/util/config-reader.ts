@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { MultiLevelMap } from './multi-level-map.js';
 import { VarSegment } from '../models/var-segment.js';
 import { Logger } from './logger.js';
@@ -210,7 +211,53 @@ export class AppConfig {
     );
     // save file path
     AppConfig.reader.set('resource.path', resourcePath);
-    // save version from version.txt in the "resources" folder
+    const reader = AppConfig.reader;
+    // v2 → v1 shorthand aliases (only applied when the v1 key is absent)
+    if (reader.exists('name') && !reader.exists('application.name')) {
+      reader.set('application.name', reader.getProperty('name'));
+    }
+    if (reader.exists('port') && !reader.exists('server.port')) {
+      reader.set('server.port', reader.getProperty('port'));
+    }
+    if (reader.exists('log') && !reader.exists('log.level')) {
+      reader.set('log.level', reader.getProperty('log'));
+    }
+    // auto-detect rest.yaml when rest.automation is not explicitly configured
+    if (!reader.exists('rest.automation')) {
+      const restYaml = reader.getProperty('resource.path') + '/rest.yaml';
+      if (fs.existsSync(restYaml)) {
+        reader.set('rest.automation', 'true');
+        if (!reader.exists('yaml.rest.automation')) {
+          reader.set('yaml.rest.automation', 'classpath:/rest.yaml');
+        }
+      }
+    }
+    // auto-read version and description from package.json if not already set
+    if (
+      !reader.exists('info.app.version') ||
+      !reader.exists('info.app.description')
+    ) {
+      try {
+        let dir = reader.getProperty('resource.path');
+        while (dir && dir !== path.dirname(dir)) {
+          const pkgPath = path.join(dir, 'package.json');
+          if (fs.existsSync(pkgPath)) {
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+            if (!reader.exists('info.app.version') && pkg.version) {
+              reader.set('info.app.version', pkg.version);
+            }
+            if (!reader.exists('info.app.description') && pkg.description) {
+              reader.set('info.app.description', pkg.description);
+            }
+            break;
+          }
+          dir = path.dirname(dir);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    // save version from version.txt in the "resources" folder (takes precedence over package.json)
     const versionFile = `${resourcePath}/version.txt`;
     if (fs.existsSync(versionFile)) {
       const version = fs.readFileSync(versionFile, {

@@ -355,8 +355,8 @@ class PO {
             f.handleEvent(input);
           });
         } else {
-          // serialize event envelope for immutability
-          emitter.emit(route, input.toBytes());
+          // pass a plain map for in-process delivery (faster than msgpackr serialization)
+          emitter.emit(route, input.toMap());
         }
       } else {
         const suggestion = util.suggestRoute(
@@ -489,8 +489,8 @@ class PO {
             .setReplyTo(TemporaryInbox.routeName)
             .addTag(RPC, String(timeout));
           input.setCorrelationId(cid);
-          // serialize event envelope for immutability
-          emitter.emit(route, input.toBytes());
+          // pass a plain map for in-process delivery (faster than msgpackr serialization)
+          emitter.emit(route, input.toMap());
         } else {
           reject(
             new AppException(

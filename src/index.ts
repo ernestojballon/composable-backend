@@ -1,5 +1,7 @@
 export { composable } from './composable.js';
 export type { ComposableOptions } from './composable.js';
+export { createApp } from './app.js';
+export type { ComposableApp } from './app.js';
 export { Logger } from './util/logger.js';
 export { Platform } from './system/platform.js';
 export { PostOffice, Sender } from './system/post-office.js';
