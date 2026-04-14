@@ -6,6 +6,8 @@ Composable Backend is a framework for building event-driven microservices and se
 
 [2 - Getting Started](02-GETTING-STARTED.md)
 
+[2b - How the Framework Works](02b-ARCHITECTURE.md)
+
 [3 - Composable Functions](03-COMPOSABLE-FUNCTIONS.md)
 
 [4 - REST Automation](04-REST-AUTOMATION.md)

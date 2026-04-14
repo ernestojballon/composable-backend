@@ -522,6 +522,6 @@ However, if there is a use case that you prefer to write orchestration logic by 
 APIs to do event-driven programming. API overview will be covered in [Platform and PostOffice](06-PLATFORM-AND-POSTOFFICE.md).
 <br/>
 
-|             Previous              |                   Home                    |                     Next                          |
-|:---------------------------------:|:-----------------------------------------:|:-------------------------------------------------:|
-| [Methodology](01-METHODOLOGY.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [Composable Functions](03-COMPOSABLE-FUNCTIONS.md) |
+|             Previous              |                   Home                    |                         Next                          |
+|:---------------------------------:|:-----------------------------------------:|:-----------------------------------------------------:|
+| [Methodology](01-METHODOLOGY.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [How the Framework Works](02b-ARCHITECTURE.md)        |

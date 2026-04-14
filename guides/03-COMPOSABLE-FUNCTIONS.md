@@ -142,6 +142,6 @@ The composable-worker.ts class may be used as a template:
 [ComposableWorker](https://github.com/ernestojballon/composable-backend-examples/blob/main/node/composable-example/src/workers/composable-worker.ts)
 <br/>
 
-|                Previous                  |                   Home                    |                 Next                     |
-|:----------------------------------------:|:-----------------------------------------:|:----------------------------------------:|
-| [Getting Started](02-GETTING-STARTED.md) | [Table of Contents](TABLE-OF-CONTENTS.md) | [REST Automation](04-REST-AUTOMATION.md) |
+|                    Previous                       |                   Home                    |                 Next                     |
+|:-------------------------------------------------:|:-----------------------------------------:|:----------------------------------------:|
+| [How the Framework Works](02b-ARCHITECTURE.md)    | [Table of Contents](TABLE-OF-CONTENTS.md) | [REST Automation](04-REST-AUTOMATION.md) |
